@@ -1,3 +1,13 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+/// Helper to parse DateTime from Firestore (handles both Timestamp and String)
+DateTime? _parseDateTime(dynamic value) {
+  if (value == null) return null;
+  if (value is Timestamp) return value.toDate();
+  if (value is String) return DateTime.tryParse(value);
+  return null;
+}
+
 /// User model for Easy Mode
 class UserModel {
   final String uid;
@@ -34,12 +44,8 @@ class UserModel {
       xpTotal: map['xpTotal'] as int? ?? 0,
       level: map['level'] as int? ?? 1,
       streak: map['streak'] as int? ?? 0,
-      lastActivity: map['lastActivity'] != null
-          ? DateTime.parse(map['lastActivity'] as String)
-          : null,
-      createdAt: map['createdAt'] != null
-          ? DateTime.parse(map['createdAt'] as String)
-          : DateTime.now(),
+      lastActivity: _parseDateTime(map['lastActivity']),
+      createdAt: _parseDateTime(map['createdAt']) ?? DateTime.now(),
     );
 
   Map<String, dynamic> toMap() => {
@@ -109,9 +115,7 @@ class UserProfile {
       pain: map['pain'] as String? ?? '',
       goal: map['goal'] as String? ?? '',
       dailyTimeMinutes: map['dailyTimeMinutes'] as int? ?? 10,
-      createdAt: map['createdAt'] != null
-          ? DateTime.parse(map['createdAt'] as String)
-          : DateTime.now(),
+      createdAt: _parseDateTime(map['createdAt']) ?? DateTime.now(),
     );
 
   Map<String, dynamic> toMap() => {

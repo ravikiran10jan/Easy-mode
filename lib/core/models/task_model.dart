@@ -1,3 +1,13 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+/// Helper to parse DateTime from Firestore (handles both Timestamp and String)
+DateTime? _parseDateTime(dynamic value) {
+  if (value == null) return null;
+  if (value is Timestamp) return value.toDate();
+  if (value is String) return DateTime.tryParse(value);
+  return null;
+}
+
 /// Task model for daily tasks
 class TaskModel {
   final String id;
@@ -70,16 +80,12 @@ class UserTaskModel {
       id: id,
       taskId: map['taskId'] as String? ?? '',
       type: map['type'] as String? ?? 'action',
-      date: map['date'] != null
-          ? DateTime.parse(map['date'] as String)
-          : DateTime.now(),
+      date: _parseDateTime(map['date']) ?? DateTime.now(),
       completed: map['completed'] as bool? ?? false,
       xpEarned: map['xpEarned'] as int? ?? 0,
       notes: map['notes'] as String?,
       outcome: map['outcome'] as String?,
-      completedAt: map['completedAt'] != null
-          ? DateTime.parse(map['completedAt'] as String)
-          : null,
+      completedAt: _parseDateTime(map['completedAt']),
     );
 
   Map<String, dynamic> toMap() => {
