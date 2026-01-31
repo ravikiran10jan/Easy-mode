@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:google_sign_in/google_sign_in.dart';
 import '../models/user_model.dart';
 import 'firestore_service.dart';
@@ -6,16 +7,24 @@ import 'firestore_service.dart';
 /// Authentication service for Firebase Auth
 class AuthService {
   final FirebaseAuth _auth;
-  final GoogleSignIn _googleSignIn;
   final FirestoreService _firestoreService;
+  GoogleSignIn? _googleSignIn;
 
   AuthService({
     FirebaseAuth? auth,
-    GoogleSignIn? googleSignIn,
     FirestoreService? firestoreService,
   })  : _auth = auth ?? FirebaseAuth.instance,
-        _googleSignIn = googleSignIn ?? GoogleSignIn(),
         _firestoreService = firestoreService ?? FirestoreService();
+
+  /// Lazy initialization of GoogleSignIn to avoid web client ID errors
+  GoogleSignIn get googleSignIn {
+    _googleSignIn ??= GoogleSignIn(
+      // For web, you need to configure OAuth in Google Cloud Console
+      // and add client ID here or in index.html meta tag
+      scopes: ['email', 'profile'],
+    );
+    return _googleSignIn!;
+  }
 
   /// Current user
   User? get currentUser => _auth.currentUser;
@@ -58,17 +67,23 @@ class AuthService {
   Future<UserCredential> signInWithEmail({
     required String email,
     required String password,
-  }) async {
-    return await _auth.signInWithEmailAndPassword(
+  }) async => await _auth.signInWithEmailAndPassword(
       email: email,
       password: password,
     );
-  }
 
   /// Sign in with Google
   Future<UserCredential?> signInWithGoogle() async {
+    // Google Sign-In is not fully configured for web without OAuth client ID
+    // For MVP, show error message on web
+    if (kIsWeb) {
+      throw UnsupportedError(
+        'Google Sign-In requires OAuth configuration. Use email/password for now.',
+      );
+    }
+
     // Trigger the authentication flow
-    final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+    final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
 
     if (googleUser == null) {
       return null; // User cancelled the sign-in
@@ -115,10 +130,10 @@ class AuthService {
 
   /// Sign out
   Future<void> signOut() async {
-    await Future.wait([
-      _auth.signOut(),
-      _googleSignIn.signOut(),
-    ]);
+    await _auth.signOut();
+    if (_googleSignIn != null) {
+      await _googleSignIn!.signOut();
+    }
   }
 
   /// Delete account

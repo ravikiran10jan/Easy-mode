@@ -20,8 +20,7 @@ class ScriptModel {
     this.tips,
   });
 
-  factory ScriptModel.fromMap(Map<String, dynamic> map, String id) {
-    return ScriptModel(
+  factory ScriptModel.fromMap(Map<String, dynamic> map, String id) => ScriptModel(
       id: id,
       title: map['title'] as String? ?? '',
       category: map['category'] as String? ?? '',
@@ -34,10 +33,8 @@ class ScriptModel {
       estimatedMinutes: map['estimatedMinutes'] as int? ?? 5,
       tips: map['tips'] as String?,
     );
-  }
 
-  Map<String, dynamic> toMap() {
-    return {
+  Map<String, dynamic> toMap() => {
       'title': title,
       'category': category,
       'template': template,
@@ -46,7 +43,6 @@ class ScriptModel {
       'estimatedMinutes': estimatedMinutes,
       'tips': tips,
     };
-  }
 }
 
 /// User's script attempt record
@@ -65,14 +61,12 @@ class UserScriptModel {
     required this.scriptId,
     required this.attemptDate,
     required this.outcome,
-    this.customText,
+    required this.xpEarned, this.customText,
     this.notes,
     this.reflection,
-    required this.xpEarned,
   });
 
-  factory UserScriptModel.fromMap(Map<String, dynamic> map, String id) {
-    return UserScriptModel(
+  factory UserScriptModel.fromMap(Map<String, dynamic> map, String id) => UserScriptModel(
       id: id,
       scriptId: map['scriptId'] as String? ?? '',
       attemptDate: map['attemptDate'] != null
@@ -84,10 +78,8 @@ class UserScriptModel {
       reflection: map['reflection'] as String?,
       xpEarned: map['xpEarned'] as int? ?? 0,
     );
-  }
 
-  Map<String, dynamic> toMap() {
-    return {
+  Map<String, dynamic> toMap() => {
       'scriptId': scriptId,
       'attemptDate': attemptDate.toIso8601String(),
       'outcome': outcome,
@@ -96,5 +88,4 @@ class UserScriptModel {
       'reflection': reflection,
       'xpEarned': xpEarned,
     };
-  }
 }

@@ -20,8 +20,7 @@ class TaskModel {
     this.riskLevel,
   });
 
-  factory TaskModel.fromMap(Map<String, dynamic> map, String id) {
-    return TaskModel(
+  factory TaskModel.fromMap(Map<String, dynamic> map, String id) => TaskModel(
       id: id,
       title: map['title'] as String? ?? '',
       description: map['description'] as String? ?? '',
@@ -31,10 +30,8 @@ class TaskModel {
       category: map['category'] as String?,
       riskLevel: map['riskLevel'] as String?,
     );
-  }
 
-  Map<String, dynamic> toMap() {
-    return {
+  Map<String, dynamic> toMap() => {
       'title': title,
       'description': description,
       'type': type,
@@ -43,7 +40,6 @@ class TaskModel {
       'category': category,
       'riskLevel': riskLevel,
     };
-  }
 }
 
 /// User's completed task record
@@ -70,8 +66,7 @@ class UserTaskModel {
     this.completedAt,
   });
 
-  factory UserTaskModel.fromMap(Map<String, dynamic> map, String id) {
-    return UserTaskModel(
+  factory UserTaskModel.fromMap(Map<String, dynamic> map, String id) => UserTaskModel(
       id: id,
       taskId: map['taskId'] as String? ?? '',
       type: map['type'] as String? ?? 'action',
@@ -86,10 +81,8 @@ class UserTaskModel {
           ? DateTime.parse(map['completedAt'] as String)
           : null,
     );
-  }
 
-  Map<String, dynamic> toMap() {
-    return {
+  Map<String, dynamic> toMap() => {
       'taskId': taskId,
       'type': type,
       'date': date.toIso8601String(),
@@ -99,5 +92,4 @@ class UserTaskModel {
       'outcome': outcome,
       'completedAt': completedAt?.toIso8601String(),
     };
-  }
 }

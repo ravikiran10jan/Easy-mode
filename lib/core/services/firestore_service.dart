@@ -39,8 +39,7 @@ class FirestoreService {
   }
 
   /// Stream user data
-  Stream<UserModel?> streamUser(String uid) {
-    return _firestore
+  Stream<UserModel?> streamUser(String uid) => _firestore
         .collection(AppConstants.usersCollection)
         .doc(uid)
         .snapshots()
@@ -48,7 +47,6 @@ class FirestoreService {
       if (!doc.exists) return null;
       return UserModel.fromMap(doc.data()!, uid);
     });
-  }
 
   /// Update user profile after onboarding
   Future<void> updateUserProfile(String uid, UserProfile profile) async {

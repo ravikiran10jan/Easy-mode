@@ -22,7 +22,7 @@ final userStatsProvider = FutureProvider<Map<String, int>>((ref) async {
   int actionsCompleted = 0;
   int audacityAttempts = 0;
   int ritualsCompleted = 0;
-  Set<String> activeDays = {};
+  final Set<String> activeDays = {};
 
   for (final task in tasks) {
     if (task['completed'] == true) {

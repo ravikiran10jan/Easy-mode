@@ -18,8 +18,7 @@ class RitualModel {
     this.iconName,
   });
 
-  factory RitualModel.fromMap(Map<String, dynamic> map, String id) {
-    return RitualModel(
+  factory RitualModel.fromMap(Map<String, dynamic> map, String id) => RitualModel(
       id: id,
       title: map['title'] as String? ?? '',
       description: map['description'] as String? ?? '',
@@ -31,10 +30,8 @@ class RitualModel {
       category: map['category'] as String?,
       iconName: map['iconName'] as String?,
     );
-  }
 
-  Map<String, dynamic> toMap() {
-    return {
+  Map<String, dynamic> toMap() => {
       'title': title,
       'description': description,
       'steps': steps,
@@ -42,7 +39,6 @@ class RitualModel {
       'category': category,
       'iconName': iconName,
     };
-  }
 }
 
 /// User's ritual completion record
@@ -65,8 +61,7 @@ class UserRitualModel {
     this.moodAfter,
   });
 
-  factory UserRitualModel.fromMap(Map<String, dynamic> map, String id) {
-    return UserRitualModel(
+  factory UserRitualModel.fromMap(Map<String, dynamic> map, String id) => UserRitualModel(
       id: id,
       ritualId: map['ritualId'] as String? ?? '',
       date: map['date'] != null
@@ -77,10 +72,8 @@ class UserRitualModel {
       moodBefore: map['moodBefore'] as int?,
       moodAfter: map['moodAfter'] as int?,
     );
-  }
 
-  Map<String, dynamic> toMap() {
-    return {
+  Map<String, dynamic> toMap() => {
       'ritualId': ritualId,
       'date': date.toIso8601String(),
       'completed': completed,
@@ -88,5 +81,4 @@ class UserRitualModel {
       'moodBefore': moodBefore,
       'moodAfter': moodAfter,
     };
-  }
 }

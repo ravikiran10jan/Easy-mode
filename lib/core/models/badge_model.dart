@@ -18,8 +18,7 @@ class BadgeModel {
     this.category,
   });
 
-  factory BadgeModel.fromMap(Map<String, dynamic> map, String id) {
-    return BadgeModel(
+  factory BadgeModel.fromMap(Map<String, dynamic> map, String id) => BadgeModel(
       id: id,
       title: map['title'] as String? ?? '',
       description: map['description'] as String? ?? '',
@@ -28,10 +27,8 @@ class BadgeModel {
       requiredCount: map['requiredCount'] as int? ?? 1,
       category: map['category'] as String?,
     );
-  }
 
-  Map<String, dynamic> toMap() {
-    return {
+  Map<String, dynamic> toMap() => {
       'title': title,
       'description': description,
       'iconName': iconName,
@@ -39,7 +36,6 @@ class BadgeModel {
       'requiredCount': requiredCount,
       'category': category,
     };
-  }
 }
 
 /// User's earned badge
@@ -52,19 +48,15 @@ class UserBadgeModel {
     required this.earnedAt,
   });
 
-  factory UserBadgeModel.fromMap(Map<String, dynamic> map) {
-    return UserBadgeModel(
+  factory UserBadgeModel.fromMap(Map<String, dynamic> map) => UserBadgeModel(
       badgeId: map['badgeId'] as String? ?? '',
       earnedAt: map['earnedAt'] != null
           ? DateTime.parse(map['earnedAt'] as String)
           : DateTime.now(),
     );
-  }
 
-  Map<String, dynamic> toMap() {
-    return {
+  Map<String, dynamic> toMap() => {
       'badgeId': badgeId,
       'earnedAt': earnedAt.toIso8601String(),
     };
-  }
 }

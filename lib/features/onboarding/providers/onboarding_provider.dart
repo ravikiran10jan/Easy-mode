@@ -25,8 +25,7 @@ class OnboardingState {
     int? dailyTimeMinutes,
     bool? isLoading,
     String? error,
-  }) {
-    return OnboardingState(
+  }) => OnboardingState(
       currentStep: currentStep ?? this.currentStep,
       selectedPain: selectedPain ?? this.selectedPain,
       selectedGoal: selectedGoal ?? this.selectedGoal,
@@ -34,7 +33,6 @@ class OnboardingState {
       isLoading: isLoading ?? this.isLoading,
       error: error,
     );
-  }
 
   bool get canProceed {
     switch (currentStep) {
@@ -102,6 +100,4 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
 
 /// Provider for onboarding state
 final onboardingProvider =
-    StateNotifierProvider<OnboardingNotifier, OnboardingState>((ref) {
-  return OnboardingNotifier();
-});
+    StateNotifierProvider<OnboardingNotifier, OnboardingState>((ref) => OnboardingNotifier());

@@ -1,7 +1,20 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
+import OpenAI from 'openai';
 
 admin.initializeApp();
+
+// Initialize OpenAI client - API key from Firebase config
+const getOpenAIClient = () => {
+  const apiKey = functions.config().openai?.key;
+  if (!apiKey) {
+    throw new functions.https.HttpsError(
+      'failed-precondition',
+      'OpenAI API key not configured. Run: firebase functions:config:set openai.key="YOUR_KEY"'
+    );
+  }
+  return new OpenAI({ apiKey });
+};
 
 const db = admin.firestore();
 
@@ -221,29 +234,237 @@ async function checkAndAwardBadges(
 }
 
 /**
- * HTTP endpoint for LLM-powered task personalization (optional feature)
- * Enable this only if LLM_ENABLED feature flag is true
+ * AI-powered task personalization
+ * Takes a task and user context, returns personalized description and tips
  */
 export const personalizeTask = functions.https.onCall(async (data, context) => {
-  // Check authentication
   if (!context.auth) {
     throw new functions.https.HttpsError(
       'unauthenticated',
       'Must be authenticated to use this feature.'
     );
   }
+
+  const { task, userContext } = data;
   
-  const { taskId, userContext } = data;
+  if (!task || !task.title) {
+    throw new functions.https.HttpsError(
+      'invalid-argument',
+      'Task data is required.'
+    );
+  }
+
+  try {
+    const openai = getOpenAIClient();
+    
+    const systemPrompt = `You are Easy Mode, an AI life coach focused on building confidence through Action, Audacity, and Enjoyment. Your tone is warm, encouraging, and direct—like a supportive friend who believes in the user.
+
+Core principles:
+- Action: Small steps create momentum. Progress over perfection.
+- Audacity: Bold asks expand comfort zones. The outcome matters less than the attempt.
+- Enjoyment: Romanticize everyday moments. Find joy in the ordinary.
+
+Keep responses concise and actionable. No fluff.`;
+
+    const userPrompt = `Personalize this task for the user:
+
+TASK:
+- Title: ${task.title}
+- Description: ${task.description}
+- Type: ${task.type}
+- Estimated time: ${task.estimatedMinutes} minutes
+
+USER CONTEXT:
+- Name: ${userContext?.name || 'Friend'}
+- Current streak: ${userContext?.streak || 0} days
+- Level: ${userContext?.level || 1}
+- Goal: ${userContext?.goal || 'Build confidence'}
+- Pain point: ${userContext?.pain || 'Feeling stuck'}
+- Time available: ${userContext?.dailyTimeMinutes || 10} minutes
+
+Respond in JSON format:
+{
+  "personalizedDescription": "A personalized version of the task description (2-3 sentences)",
+  "coachTip": "One specific, actionable tip for this task (1-2 sentences)",
+  "motivationalNote": "A brief encouraging message based on their progress (1 sentence)"
+}`;
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ],
+      temperature: 0.7,
+      max_tokens: 300,
+      response_format: { type: 'json_object' }
+    });
+
+    const content = response.choices[0]?.message?.content;
+    if (!content) {
+      throw new Error('Empty response from AI');
+    }
+
+    const personalized = JSON.parse(content);
+    
+    return {
+      success: true,
+      personalizedDescription: personalized.personalizedDescription,
+      coachTip: personalized.coachTip,
+      motivationalNote: personalized.motivationalNote,
+    };
+  } catch (error) {
+    console.error('Error personalizing task:', error);
+    
+    // Return fallback personalization
+    return {
+      success: false,
+      personalizedDescription: task.description,
+      coachTip: 'Take it one step at a time. You\'ve got this.',
+      motivationalNote: 'Every small action builds momentum.',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+});
+
+/**
+ * Generate daily AI insight based on user progress
+ */
+export const generateDailyInsight = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError(
+      'unauthenticated',
+      'Must be authenticated to use this feature.'
+    );
+  }
+
+  const userId = context.auth.uid;
+  const { userStats, recentActivity } = data;
   
-  // This is a placeholder for LLM integration
-  // In production, you would call OpenAI/Claude API here
-  // For MVP, return the original task with a personalized message
-  
-  return {
-    success: true,
-    message: 'Task personalization is a premium feature.',
-    personalizedTask: null,
-  };
+  // Declare outside try block for catch fallback access
+  let stats = userStats;
+  let activity = recentActivity;
+
+  try {
+    const openai = getOpenAIClient();
+    
+    // Get additional user data if not provided
+    if (!stats) {
+      const userDoc = await db.collection('users').doc(userId).get();
+      if (userDoc.exists) {
+        const userData = userDoc.data()!;
+        stats = {
+          name: userData.name,
+          xpTotal: userData.xpTotal || 0,
+          level: userData.level || 1,
+          streak: userData.streak || 0,
+          goal: userData.profile?.goal,
+          pain: userData.profile?.pain,
+        };
+      }
+    }
+    
+    if (!activity) {
+      // Get last 7 days of activity
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      
+      const tasksSnapshot = await db
+        .collection('users')
+        .doc(userId)
+        .collection('userTasks')
+        .where('date', '>=', sevenDaysAgo.toISOString())
+        .get();
+      
+      activity = {
+        tasksCompleted: tasksSnapshot.size,
+        taskTypes: tasksSnapshot.docs.map(d => d.data().type),
+      };
+    }
+
+    const systemPrompt = `You are Easy Mode, an AI life coach. Generate a personalized daily insight that feels like a message from a supportive mentor.
+
+Your insights should:
+- Acknowledge specific progress or patterns
+- Provide one actionable suggestion for today
+- Be warm but not cheesy
+- Keep it under 100 words total`;
+
+    const userPrompt = `Generate a daily insight for this user:
+
+USER STATS:
+- Name: ${stats?.name || 'Friend'}
+- Level: ${stats?.level || 1}
+- XP Total: ${stats?.xpTotal || 0}
+- Current streak: ${stats?.streak || 0} days
+- Goal: ${stats?.goal || 'Build confidence'}
+- Challenge: ${stats?.pain || 'Getting started'}
+
+RECENT ACTIVITY (Last 7 days):
+- Tasks completed: ${activity?.tasksCompleted || 0}
+- Task types: ${activity?.taskTypes?.join(', ') || 'None yet'}
+
+Today is ${new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}.
+
+Respond in JSON format:
+{
+  "greeting": "A personalized greeting (e.g., 'Good morning, [name]!' or 'Hey [name],')",
+  "insight": "Main insight about their progress or a pattern you notice (2-3 sentences)",
+  "todayFocus": "One specific thing to focus on today (1 sentence)",
+  "encouragement": "Brief closing encouragement (1 sentence)"
+}`;
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ],
+      temperature: 0.8,
+      max_tokens: 250,
+      response_format: { type: 'json_object' }
+    });
+
+    const content = response.choices[0]?.message?.content;
+    if (!content) {
+      throw new Error('Empty response from AI');
+    }
+
+    const insight = JSON.parse(content);
+    
+    // Log analytics
+    await db.collection('analytics').add({
+      event: 'daily_insight_generated',
+      userId: userId,
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    
+    return {
+      success: true,
+      greeting: insight.greeting,
+      insight: insight.insight,
+      todayFocus: insight.todayFocus,
+      encouragement: insight.encouragement,
+      generatedAt: new Date().toISOString(),
+    };
+  } catch (error) {
+    console.error('Error generating daily insight:', error);
+    
+    // Return fallback insight
+    const fallbackGreetings = [
+      `Good morning${stats?.name ? `, ${stats.name}` : ''}!`,
+      `Hey there${stats?.name ? `, ${stats.name}` : ''}!`,
+    ];
+    
+    return {
+      success: false,
+      greeting: fallbackGreetings[Math.floor(Math.random() * fallbackGreetings.length)],
+      insight: 'Every day is a fresh opportunity to take action toward your goals.',
+      todayFocus: 'Pick one small task and give it your full attention.',
+      encouragement: 'You\'re building something great, one step at a time.',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
 });
 
 /**

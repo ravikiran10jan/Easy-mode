@@ -25,15 +25,13 @@ class DailyTaskState {
     Duration? elapsedTime,
     bool? isCompleted,
     bool? isLoading,
-  }) {
-    return DailyTaskState(
+  }) => DailyTaskState(
       task: task ?? this.task,
       isTimerRunning: isTimerRunning ?? this.isTimerRunning,
       elapsedTime: elapsedTime ?? this.elapsedTime,
       isCompleted: isCompleted ?? this.isCompleted,
       isLoading: isLoading ?? this.isLoading,
     );
-  }
 }
 
 /// Daily task provider that rotates through task types
@@ -71,9 +69,7 @@ final dailyTaskProvider = FutureProvider<TaskModel>((ref) async {
 });
 
 /// Task timer state provider
-final taskTimerProvider = StateNotifierProvider<TaskTimerNotifier, DailyTaskState>((ref) {
-  return TaskTimerNotifier();
-});
+final taskTimerProvider = StateNotifierProvider<TaskTimerNotifier, DailyTaskState>((ref) => TaskTimerNotifier());
 
 class TaskTimerNotifier extends StateNotifier<DailyTaskState> {
   TaskTimerNotifier() : super(DailyTaskState());

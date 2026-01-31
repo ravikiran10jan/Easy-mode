@@ -13,7 +13,7 @@ class UserModel {
 
   UserModel({
     required this.uid,
-    this.name,
+    required this.createdAt, this.name,
     this.email,
     this.photoUrl,
     this.profile,
@@ -21,11 +21,9 @@ class UserModel {
     this.level = 1,
     this.streak = 0,
     this.lastActivity,
-    required this.createdAt,
   });
 
-  factory UserModel.fromMap(Map<String, dynamic> map, String uid) {
-    return UserModel(
+  factory UserModel.fromMap(Map<String, dynamic> map, String uid) => UserModel(
       uid: uid,
       name: map['name'] as String?,
       email: map['email'] as String?,
@@ -43,10 +41,8 @@ class UserModel {
           ? DateTime.parse(map['createdAt'] as String)
           : DateTime.now(),
     );
-  }
 
-  Map<String, dynamic> toMap() {
-    return {
+  Map<String, dynamic> toMap() => {
       'name': name,
       'email': email,
       'photoUrl': photoUrl,
@@ -57,7 +53,6 @@ class UserModel {
       'lastActivity': lastActivity?.toIso8601String(),
       'createdAt': createdAt.toIso8601String(),
     };
-  }
 
   UserModel copyWith({
     String? uid,
@@ -70,8 +65,7 @@ class UserModel {
     int? streak,
     DateTime? lastActivity,
     DateTime? createdAt,
-  }) {
-    return UserModel(
+  }) => UserModel(
       uid: uid ?? this.uid,
       name: name ?? this.name,
       email: email ?? this.email,
@@ -83,7 +77,6 @@ class UserModel {
       lastActivity: lastActivity ?? this.lastActivity,
       createdAt: createdAt ?? this.createdAt,
     );
-  }
 
   /// Check if user has completed onboarding
   bool get hasCompletedOnboarding => profile != null;
@@ -112,8 +105,7 @@ class UserProfile {
     required this.createdAt,
   });
 
-  factory UserProfile.fromMap(Map<String, dynamic> map) {
-    return UserProfile(
+  factory UserProfile.fromMap(Map<String, dynamic> map) => UserProfile(
       pain: map['pain'] as String? ?? '',
       goal: map['goal'] as String? ?? '',
       dailyTimeMinutes: map['dailyTimeMinutes'] as int? ?? 10,
@@ -121,14 +113,11 @@ class UserProfile {
           ? DateTime.parse(map['createdAt'] as String)
           : DateTime.now(),
     );
-  }
 
-  Map<String, dynamic> toMap() {
-    return {
+  Map<String, dynamic> toMap() => {
       'pain': pain,
       'goal': goal,
       'dailyTimeMinutes': dailyTimeMinutes,
       'createdAt': createdAt.toIso8601String(),
     };
-  }
 }

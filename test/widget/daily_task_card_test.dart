@@ -16,8 +16,7 @@ void main() {
       xpReward: 100,
     );
 
-    Widget createWidgetUnderTest({VoidCallback? onComplete}) {
-      return ProviderScope(
+    Widget createWidgetUnderTest({VoidCallback? onComplete}) => ProviderScope(
         child: MaterialApp(
           theme: AppTheme.lightTheme,
           home: Scaffold(
@@ -28,7 +27,6 @@ void main() {
           ),
         ),
       );
-    }
 
     testWidgets('displays task title and description', (tester) async {
       await tester.pumpWidget(createWidgetUnderTest());

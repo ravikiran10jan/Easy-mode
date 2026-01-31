@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "190696117404",
+    "project_id": "easy-mode-coach",
+    "storage_bucket": "easy-mode-coach.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:190696117404:android:ea55037c4bcd29aa808959",
+        "android_client_info": {
+          "package_name": "com.easymode.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAS7GXKheeMVzT2BVaH2EfDx0kXwaaJMsY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

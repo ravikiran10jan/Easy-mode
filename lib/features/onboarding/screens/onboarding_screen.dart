@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/models/user_model.dart';
 import '../../../core/providers/auth_providers.dart';
@@ -47,8 +48,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   void _nextPage() {
     if (_currentPage < 3) {
       _pageController.nextPage(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeOutCubic,
       );
     }
   }
@@ -56,8 +57,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   void _previousPage() {
     if (_currentPage > 0) {
       _pageController.previousPage(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeOutCubic,
       );
     }
   }
@@ -102,25 +103,35 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
+  Widget build(BuildContext context) => Scaffold(
+      backgroundColor: AppTheme.backgroundColor,
       body: SafeArea(
         child: Column(
           children: [
             // Progress indicator
             Padding(
-              padding: const EdgeInsets.all(AppTheme.spacingMd),
+              padding: const EdgeInsets.all(AppTheme.spacingLg),
               child: Row(
                 children: List.generate(4, (index) {
+                  final isActive = index <= _currentPage;
+                  final isCompleted = index < _currentPage;
+                  
                   return Expanded(
-                    child: Container(
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
                       height: 4,
-                      margin: const EdgeInsets.symmetric(horizontal: 2),
+                      margin: const EdgeInsets.symmetric(horizontal: 3),
                       decoration: BoxDecoration(
-                        color: index <= _currentPage
-                            ? AppTheme.primaryColor
-                            : AppTheme.textMuted.withOpacity(0.3),
+                        gradient: isActive ? AppTheme.primaryGradient : null,
+                        color: isActive ? null : AppTheme.dividerColor,
                         borderRadius: BorderRadius.circular(2),
+                        boxShadow: isCompleted ? [
+                          BoxShadow(
+                            color: AppTheme.primaryColor.withOpacity(0.3),
+                            blurRadius: 4,
+                            offset: const Offset(0, 1),
+                          ),
+                        ] : null,
                       ),
                     ),
                   );
@@ -148,54 +159,122 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             ),
             
             // Navigation buttons
-            Padding(
+            Container(
               padding: const EdgeInsets.all(AppTheme.spacingLg),
-              child: Row(
-                children: [
-                  if (_currentPage > 0)
-                    TextButton(
-                      onPressed: _previousPage,
-                      child: const Text('Back'),
-                    )
-                  else
-                    const SizedBox(width: 80),
-                  
-                  const Spacer(),
-                  
-                  ElevatedButton(
-                    onPressed: _canProceed()
-                        ? (_currentPage == 3 ? _completeOnboarding : _nextPage)
-                        : null,
-                    child: Text(_currentPage == 3 ? 'Get Started' : 'Continue'),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, -4),
                   ),
                 ],
+              ),
+              child: SafeArea(
+                top: false,
+                child: Row(
+                  children: [
+                    if (_currentPage > 0)
+                      TextButton.icon(
+                        onPressed: _previousPage,
+                        icon: const Icon(Icons.arrow_back_rounded, size: 18),
+                        label: const Text('Back'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppTheme.textSecondary,
+                        ),
+                      )
+                    else
+                      const SizedBox(width: 80),
+                    
+                    const Spacer(),
+                    
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      decoration: BoxDecoration(
+                        gradient: _canProceed() ? AppTheme.primaryGradient : null,
+                        color: _canProceed() ? null : AppTheme.dividerColor,
+                        borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+                        boxShadow: _canProceed() ? [
+                          BoxShadow(
+                            color: AppTheme.primaryColor.withOpacity(0.3),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ] : null,
+                      ),
+                      child: ElevatedButton(
+                        onPressed: _canProceed()
+                            ? (_currentPage == 3 ? _completeOnboarding : _nextPage)
+                            : null,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          disabledBackgroundColor: Colors.transparent,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 28,
+                            vertical: 14,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              _currentPage == 3 ? 'Get Started' : 'Continue',
+                              style: TextStyle(
+                                color: _canProceed() ? Colors.white : AppTheme.textMuted,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            if (_currentPage < 3) ...[
+                              const SizedBox(width: 8),
+                              Icon(
+                                Icons.arrow_forward_rounded,
+                                size: 18,
+                                color: _canProceed() ? Colors.white : AppTheme.textMuted,
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
         ),
       ),
     );
-  }
 
-  Widget _buildWelcomePage() {
-    return Padding(
+  Widget _buildWelcomePage() => SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(AppTheme.spacingLg),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
+          const SizedBox(height: AppTheme.spacingXl),
+          
           Container(
-            width: 120,
-            height: 120,
+            width: 140,
+            height: 140,
             decoration: BoxDecoration(
-              gradient: AppTheme.primaryGradient,
-              borderRadius: BorderRadius.circular(30),
+              gradient: AppTheme.heroGradient,
+              borderRadius: BorderRadius.circular(40),
+              boxShadow: AppTheme.shadowColored(AppTheme.primaryColor),
             ),
             child: const Icon(
               Icons.bolt_rounded,
-              size: 64,
+              size: 72,
               color: Colors.white,
             ),
-          ),
+          ).animate()
+            .fadeIn(duration: 600.ms)
+            .scale(
+              begin: const Offset(0.8, 0.8),
+              end: const Offset(1, 1),
+              curve: Curves.easeOutBack,
+            ),
           
           const SizedBox(height: AppTheme.spacingXl),
           
@@ -203,328 +282,283 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             'Welcome to Easy Mode',
             style: Theme.of(context).textTheme.displayMedium,
             textAlign: TextAlign.center,
-          ),
+          ).animate()
+            .fadeIn(delay: 200.ms, duration: 500.ms)
+            .slideY(begin: 0.2, end: 0),
           
           const SizedBox(height: AppTheme.spacingMd),
           
-          Text(
-            'Your AI life coach for building confidence through action, audacity, and enjoyment.',
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: AppTheme.textSecondary,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingMd),
+            child: Text(
+              'Your AI life coach for building confidence through action, audacity, and enjoyment.',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                color: AppTheme.textSecondary,
+                height: 1.5,
+              ),
+              textAlign: TextAlign.center,
             ),
-            textAlign: TextAlign.center,
-          ),
+          ).animate()
+            .fadeIn(delay: 300.ms, duration: 500.ms),
           
-          const SizedBox(height: AppTheme.spacingXl),
+          const SizedBox(height: AppTheme.spacingXxl),
           
           // Three principles
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _buildPrincipleChip('Action', AppTheme.actionColor, Icons.flash_on),
-              _buildPrincipleChip('Audacity', AppTheme.audacityColor, Icons.local_fire_department),
-              _buildPrincipleChip('Enjoy', AppTheme.enjoyColor, Icons.favorite),
+              _buildPrincipleChip(
+                'Action',
+                AppTheme.actionColor,
+                AppTheme.actionGradient,
+                Icons.flash_on_rounded,
+              ).animate()
+                .fadeIn(delay: 400.ms, duration: 400.ms)
+                .slideY(begin: 0.3, end: 0),
+              _buildPrincipleChip(
+                'Audacity',
+                AppTheme.audacityColor,
+                AppTheme.audacityGradient,
+                Icons.local_fire_department_rounded,
+              ).animate()
+                .fadeIn(delay: 500.ms, duration: 400.ms)
+                .slideY(begin: 0.3, end: 0),
+              _buildPrincipleChip(
+                'Enjoy',
+                AppTheme.enjoyColor,
+                AppTheme.enjoyGradient,
+                Icons.favorite_rounded,
+              ).animate()
+                .fadeIn(delay: 600.ms, duration: 400.ms)
+                .slideY(begin: 0.3, end: 0),
             ],
           ),
         ],
       ),
     );
-  }
 
-  Widget _buildPrincipleChip(String label, Color color, IconData icon) {
-    return Column(
+  Widget _buildPrincipleChip(
+    String label,
+    Color color,
+    LinearGradient gradient,
+    IconData icon,
+  ) => Column(
       children: [
         Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
+            gradient: gradient,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: color.withOpacity(0.3),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
-          child: Icon(icon, color: color, size: 28),
+          child: Icon(icon, color: Colors.white, size: 32),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
         Text(
           label,
           style: TextStyle(
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w700,
             color: color,
+            fontSize: 14,
           ),
         ),
       ],
     );
-  }
 
-  Widget _buildPainPage() {
-    return Padding(
+  Widget _buildPainPage() => SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(AppTheme.spacingLg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: AppTheme.spacingLg),
-          
           Text(
             'What\'s your biggest challenge?',
             style: Theme.of(context).textTheme.headlineLarge,
-          ),
+          ).animate()
+            .fadeIn(duration: 400.ms)
+            .slideX(begin: -0.1, end: 0),
           
           const SizedBox(height: AppTheme.spacingSm),
           
           Text(
             'This helps us personalize your experience',
             style: Theme.of(context).textTheme.bodyMedium,
-          ),
+          ).animate()
+            .fadeIn(delay: 100.ms, duration: 400.ms),
           
-          const SizedBox(height: AppTheme.spacingXl),
+          const SizedBox(height: AppTheme.spacingLg),
           
           ...List.generate(_painOptions.length, (index) {
             final option = _painOptions[index];
             final isSelected = _selectedPain == option;
             
-            return Padding(
-              padding: const EdgeInsets.only(bottom: AppTheme.spacingMd),
-              child: InkWell(
-                onTap: () {
-                  setState(() {
-                    _selectedPain = option;
-                  });
-                },
-                borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-                child: Container(
-                  padding: const EdgeInsets.all(AppTheme.spacingMd),
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? AppTheme.primaryColor.withOpacity(0.1)
-                        : Colors.white,
-                    borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-                    border: Border.all(
-                      color: isSelected
-                          ? AppTheme.primaryColor
-                          : AppTheme.textMuted.withOpacity(0.3),
-                      width: isSelected ? 2 : 1,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 24,
-                        height: 24,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: isSelected
-                              ? AppTheme.primaryColor
-                              : Colors.transparent,
-                          border: Border.all(
-                            color: isSelected
-                                ? AppTheme.primaryColor
-                                : AppTheme.textMuted,
-                            width: 2,
-                          ),
-                        ),
-                        child: isSelected
-                            ? const Icon(
-                                Icons.check,
-                                size: 16,
-                                color: Colors.white,
-                              )
-                            : null,
-                      ),
-                      const SizedBox(width: AppTheme.spacingMd),
-                      Expanded(
-                        child: Text(
-                          option,
-                          style: TextStyle(
-                            fontWeight: isSelected
-                                ? FontWeight.w600
-                                : FontWeight.normal,
-                            color: isSelected
-                                ? AppTheme.primaryColor
-                                : AppTheme.textPrimary,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
+            return _buildOptionCard(
+              option,
+              isSelected,
+              AppTheme.primaryColor,
+              () => setState(() => _selectedPain = option),
+            ).animate()
+              .fadeIn(delay: Duration(milliseconds: 150 + (index * 100)), duration: 400.ms)
+              .slideX(begin: 0.1, end: 0);
           }),
         ],
       ),
     );
-  }
 
-  Widget _buildGoalPage() {
-    return Padding(
+  Widget _buildGoalPage() => SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(AppTheme.spacingLg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: AppTheme.spacingLg),
-          
           Text(
             'What do you want to achieve?',
             style: Theme.of(context).textTheme.headlineLarge,
-          ),
+          ).animate()
+            .fadeIn(duration: 400.ms)
+            .slideX(begin: -0.1, end: 0),
           
           const SizedBox(height: AppTheme.spacingSm),
           
           Text(
             'Pick your primary goal',
             style: Theme.of(context).textTheme.bodyMedium,
-          ),
+          ).animate()
+            .fadeIn(delay: 100.ms, duration: 400.ms),
           
-          const SizedBox(height: AppTheme.spacingXl),
+          const SizedBox(height: AppTheme.spacingLg),
           
           ...List.generate(_goalOptions.length, (index) {
             final option = _goalOptions[index];
             final isSelected = _selectedGoal == option;
             
-            return Padding(
-              padding: const EdgeInsets.only(bottom: AppTheme.spacingMd),
-              child: InkWell(
-                onTap: () {
-                  setState(() {
-                    _selectedGoal = option;
-                  });
-                },
-                borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-                child: Container(
-                  padding: const EdgeInsets.all(AppTheme.spacingMd),
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? AppTheme.secondaryColor.withOpacity(0.1)
-                        : Colors.white,
-                    borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-                    border: Border.all(
-                      color: isSelected
-                          ? AppTheme.secondaryColor
-                          : AppTheme.textMuted.withOpacity(0.3),
-                      width: isSelected ? 2 : 1,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 24,
-                        height: 24,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: isSelected
-                              ? AppTheme.secondaryColor
-                              : Colors.transparent,
-                          border: Border.all(
-                            color: isSelected
-                                ? AppTheme.secondaryColor
-                                : AppTheme.textMuted,
-                            width: 2,
-                          ),
-                        ),
-                        child: isSelected
-                            ? const Icon(
-                                Icons.check,
-                                size: 16,
-                                color: Colors.white,
-                              )
-                            : null,
-                      ),
-                      const SizedBox(width: AppTheme.spacingMd),
-                      Expanded(
-                        child: Text(
-                          option,
-                          style: TextStyle(
-                            fontWeight: isSelected
-                                ? FontWeight.w600
-                                : FontWeight.normal,
-                            color: isSelected
-                                ? AppTheme.secondaryColor
-                                : AppTheme.textPrimary,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
+            return _buildOptionCard(
+              option,
+              isSelected,
+              AppTheme.secondaryColor,
+              () => setState(() => _selectedGoal = option),
+            ).animate()
+              .fadeIn(delay: Duration(milliseconds: 150 + (index * 100)), duration: 400.ms)
+              .slideX(begin: 0.1, end: 0);
           }),
         ],
       ),
     );
-  }
 
-  Widget _buildTimePage() {
-    return Padding(
+  Widget _buildOptionCard(
+    String text,
+    bool isSelected,
+    Color color,
+    VoidCallback onTap,
+  ) => Padding(
+      padding: const EdgeInsets.only(bottom: AppTheme.spacingMd),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.all(AppTheme.spacingMd),
+            decoration: BoxDecoration(
+              color: isSelected ? color.withOpacity(0.1) : Colors.white,
+              borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+              border: Border.all(
+                color: isSelected ? color : AppTheme.dividerColor,
+                width: isSelected ? 2 : 1,
+              ),
+              boxShadow: isSelected ? [
+                BoxShadow(
+                  color: color.withOpacity(0.15),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ] : AppTheme.shadowSmall,
+            ),
+            child: Row(
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isSelected ? color : Colors.transparent,
+                    border: Border.all(
+                      color: isSelected ? color : AppTheme.textMuted,
+                      width: 2,
+                    ),
+                  ),
+                  child: isSelected
+                      ? const Icon(
+                          Icons.check_rounded,
+                          size: 18,
+                          color: Colors.white,
+                        )
+                      : null,
+                ),
+                const SizedBox(width: AppTheme.spacingMd),
+                Expanded(
+                  child: Text(
+                    text,
+                    style: TextStyle(
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                      color: isSelected ? color : AppTheme.textPrimary,
+                      fontSize: 15,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+  Widget _buildTimePage() => SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(AppTheme.spacingLg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: AppTheme.spacingLg),
-          
           Text(
             'How much time can you spare daily?',
             style: Theme.of(context).textTheme.headlineLarge,
-          ),
+          ).animate()
+            .fadeIn(duration: 400.ms)
+            .slideX(begin: -0.1, end: 0),
           
           const SizedBox(height: AppTheme.spacingSm),
           
           Text(
             'Even 5 minutes can make a difference',
             style: Theme.of(context).textTheme.bodyMedium,
-          ),
+          ).animate()
+            .fadeIn(delay: 100.ms, duration: 400.ms),
           
           const SizedBox(height: AppTheme.spacingXl),
           
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: _timeOptions.map((time) {
+            children: _timeOptions.asMap().entries.map((entry) {
+              final index = entry.key;
+              final time = entry.value;
               final isSelected = _selectedDailyTime == time;
               
-              return InkWell(
-                onTap: () {
-                  setState(() {
-                    _selectedDailyTime = time;
-                  });
-                },
-                borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
-                child: Container(
-                  width: 72,
-                  height: 72,
-                  decoration: BoxDecoration(
-                    gradient: isSelected ? AppTheme.primaryGradient : null,
-                    color: isSelected ? null : Colors.white,
-                    borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
-                    border: isSelected
-                        ? null
-                        : Border.all(
-                            color: AppTheme.textMuted.withOpacity(0.3),
-                          ),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        '$time',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: isSelected
-                              ? Colors.white
-                              : AppTheme.textPrimary,
-                        ),
-                      ),
-                      Text(
-                        'min',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: isSelected
-                              ? Colors.white.withOpacity(0.8)
-                              : AppTheme.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
+              return _buildTimeOption(time, isSelected)
+                .animate()
+                .fadeIn(delay: Duration(milliseconds: 200 + (index * 100)), duration: 400.ms)
+                .scale(
+                  begin: const Offset(0.8, 0.8),
+                  end: const Offset(1, 1),
+                  curve: Curves.easeOutBack,
+                );
             }).toList(),
           ),
           
@@ -535,27 +569,89 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             decoration: BoxDecoration(
               color: AppTheme.accentColor.withOpacity(0.1),
               borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+              border: Border.all(
+                color: AppTheme.accentColor.withOpacity(0.2),
+              ),
             ),
             child: Row(
               children: [
-                Icon(
-                  Icons.lightbulb_outline,
-                  color: AppTheme.accentColor,
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppTheme.accentColor.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    Icons.lightbulb_rounded,
+                    color: AppTheme.accentColor,
+                    size: 20,
+                  ),
                 ),
                 const SizedBox(width: AppTheme.spacingMd),
                 Expanded(
                   child: Text(
                     'You can always adjust this later in settings.',
-                    style: TextStyle(
-                      color: AppTheme.accentColor.withOpacity(0.8),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppTheme.textSecondary,
                     ),
                   ),
                 ),
               ],
             ),
-          ),
+          ).animate()
+            .fadeIn(delay: 600.ms, duration: 400.ms),
         ],
       ),
     );
-  }
+
+  Widget _buildTimeOption(int time, bool isSelected) => GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedDailyTime = time;
+        });
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        width: 76,
+        height: 90,
+        decoration: BoxDecoration(
+          gradient: isSelected ? AppTheme.primaryGradient : null,
+          color: isSelected ? null : Colors.white,
+          borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+          border: isSelected
+              ? null
+              : Border.all(color: AppTheme.dividerColor),
+          boxShadow: isSelected ? [
+            BoxShadow(
+              color: AppTheme.primaryColor.withOpacity(0.3),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ] : AppTheme.shadowSmall,
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              '$time',
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.w800,
+                color: isSelected ? Colors.white : AppTheme.textPrimary,
+              ),
+            ),
+            Text(
+              'min',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: isSelected
+                    ? Colors.white.withOpacity(0.9)
+                    : AppTheme.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
 }

@@ -118,14 +118,14 @@ void main() {
     test('streak increments on consecutive day', () {
       const daysDiff = 1;
       const previousStreak = 5;
-      final newStreak = daysDiff == 1 ? previousStreak + 1 : previousStreak;
+      const newStreak = daysDiff == 1 ? previousStreak + 1 : previousStreak;
       expect(newStreak, 6);
     });
 
     test('streak unchanged on same day', () {
       const daysDiff = 0;
       const previousStreak = 5;
-      final newStreak = daysDiff == 0 ? previousStreak : previousStreak + 1;
+      const newStreak = daysDiff == 0 ? previousStreak : previousStreak + 1;
       expect(newStreak, 5);
     });
   });

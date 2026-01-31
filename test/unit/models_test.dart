@@ -35,7 +35,7 @@ void main() {
         xpTotal: 500,
         level: 2,
         streak: 5,
-        createdAt: DateTime(2024, 1, 1),
+        createdAt: DateTime(2024, 1),
       );
 
       final map = user.toMap();

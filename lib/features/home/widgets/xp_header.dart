@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/models/user_model.dart';
 
@@ -24,11 +25,16 @@ class XpHeader extends StatelessWidget {
               children: [
                 Text(
                   greeting,
-                  style: Theme.of(context).textTheme.bodyMedium,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppTheme.textSecondary,
+                  ),
                 ),
+                const SizedBox(height: 2),
                 Text(
                   name,
-                  style: Theme.of(context).textTheme.headlineLarge,
+                  style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                    color: AppTheme.textPrimary,
+                  ),
                 ),
               ],
             ),
@@ -37,35 +43,46 @@ class XpHeader extends StatelessWidget {
             if (user != null && user!.streak > 0)
               Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: AppTheme.spacingMd,
-                  vertical: AppTheme.spacingSm,
+                  horizontal: 14,
+                  vertical: 10,
                 ),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFFF6B6B), Color(0xFFFF8E53)],
-                  ),
-                  borderRadius: BorderRadius.circular(AppTheme.radiusXLarge),
+                  gradient: AppTheme.streakGradient,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFFF6B6B).withOpacity(0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     const Icon(
-                      Icons.local_fire_department,
+                      Icons.local_fire_department_rounded,
                       color: Colors.white,
                       size: 20,
                     ),
-                    const SizedBox(width: 4),
+                    const SizedBox(width: 6),
                     Text(
                       '${user!.streak}',
                       style: const TextStyle(
                         color: Colors.white,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w700,
                         fontSize: 16,
                       ),
                     ),
                   ],
                 ),
-              ),
+              ).animate()
+                .scale(
+                  begin: const Offset(0.9, 0.9),
+                  end: const Offset(1, 1),
+                  duration: 300.ms,
+                  curve: Curves.easeOutBack,
+                ),
           ],
         ),
         
@@ -76,64 +93,130 @@ class XpHeader extends StatelessWidget {
           padding: const EdgeInsets.all(AppTheme.spacingMd),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 2),
-              ),
-            ],
+            borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+            boxShadow: AppTheme.shadowSmall,
           ),
           child: Column(
             children: [
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          gradient: AppTheme.primaryGradient,
-                          borderRadius: BorderRadius.circular(8),
+                  // Level badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: AppTheme.primaryGradient,
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.primaryColor.withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
                         ),
-                        child: Text(
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.star_rounded,
+                          color: Colors.white,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
                           'Lv ${user?.level ?? 1}',
                           style: const TextStyle(
                             color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
                           ),
                         ),
-                      ),
-                      const SizedBox(width: AppTheme.spacingSm),
-                      Text(
-                        '${user?.xpTotal ?? 0} XP',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                  Text(
-                    '${user?.xpForNextLevel ?? 500} XP to next level',
-                    style: Theme.of(context).textTheme.bodySmall,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${user?.xpTotal ?? 0} XP',
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        Text(
+                          '${user?.xpForNextLevel ?? 500} XP to level up',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Level title
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      _getLevelTitle(user?.level ?? 1),
+                      style: TextStyle(
+                        color: AppTheme.primaryColor,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
+                    ),
                   ),
                 ],
               ),
               
-              const SizedBox(height: AppTheme.spacingSm),
+              const SizedBox(height: 12),
               
-              // Progress bar
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: user?.levelProgress ?? 0.0,
-                  backgroundColor: AppTheme.textMuted.withOpacity(0.2),
-                  valueColor: const AlwaysStoppedAnimation<Color>(
-                    AppTheme.primaryColor,
+              // Progress bar with gradient
+              Stack(
+                children: [
+                  // Background
+                  Container(
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(5),
+                    ),
                   ),
-                  minHeight: 8,
-                ),
+                  // Progress
+                  FractionallySizedBox(
+                    widthFactor: (user?.levelProgress ?? 0.0).clamp(0.0, 1.0),
+                    child: Container(
+                      height: 10,
+                      decoration: BoxDecoration(
+                        gradient: AppTheme.primaryGradient,
+                        borderRadius: BorderRadius.circular(5),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppTheme.primaryColor.withOpacity(0.4),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ).animate()
+                    .scaleX(
+                      begin: 0,
+                      end: 1,
+                      duration: 800.ms,
+                      delay: 300.ms,
+                      curve: Curves.easeOutCubic,
+                      alignment: Alignment.centerLeft,
+                    ),
+                ],
               ),
             ],
           ),
@@ -151,5 +234,14 @@ class XpHeader extends StatelessWidget {
     } else {
       return 'Good evening,';
     }
+  }
+
+  String _getLevelTitle(int level) {
+    if (level < 5) return 'Beginner';
+    if (level < 10) return 'Apprentice';
+    if (level < 20) return 'Practitioner';
+    if (level < 30) return 'Expert';
+    if (level < 40) return 'Master';
+    return 'Legend';
   }
 }

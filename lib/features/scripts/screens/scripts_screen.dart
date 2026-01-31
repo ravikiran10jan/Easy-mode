@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/models/script_model.dart';
 import '../providers/scripts_provider.dart';
@@ -31,118 +32,230 @@ class _ScriptsScreenState extends ConsumerState<ScriptsScreen> {
     final scriptsAsync = ref.watch(scriptsProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Audacity Scripts'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.info_outline),
-            onPressed: () => _showInfoDialog(),
+      backgroundColor: AppTheme.backgroundColor,
+      body: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          // Custom App Bar
+          SliverAppBar(
+            expandedHeight: 100,
+            floating: false,
+            pinned: true,
+            backgroundColor: AppTheme.backgroundColor,
+            surfaceTintColor: Colors.transparent,
+            flexibleSpace: FlexibleSpaceBar(
+              title: Text(
+                'Audacity Scripts',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              centerTitle: false,
+              titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
+            ),
+            actions: [
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: IconButton(
+                  icon: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: AppTheme.shadowSmall,
+                    ),
+                    child: Icon(
+                      Icons.info_outline_rounded,
+                      color: AppTheme.audacityColor,
+                      size: 20,
+                    ),
+                  ),
+                  onPressed: _showInfoDialog,
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Search bar
-          Padding(
-            padding: const EdgeInsets.all(AppTheme.spacingMd),
-            child: TextField(
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value;
-                });
-              },
-              decoration: InputDecoration(
-                hintText: 'Search scripts...',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: _searchQuery.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () {
-                          setState(() {
-                            _searchQuery = '';
-                          });
-                        },
-                      )
-                    : null,
+          
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingMd),
+              child: Column(
+                children: [
+                  // Search bar
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+                      boxShadow: AppTheme.shadowSmall,
+                    ),
+                    child: TextField(
+                      onChanged: (value) {
+                        setState(() {
+                          _searchQuery = value;
+                        });
+                      },
+                      decoration: InputDecoration(
+                        hintText: 'Search scripts...',
+                        prefixIcon: Icon(
+                          Icons.search_rounded,
+                          color: AppTheme.textMuted,
+                        ),
+                        suffixIcon: _searchQuery.isNotEmpty
+                            ? IconButton(
+                                icon: Icon(
+                                  Icons.clear_rounded,
+                                  color: AppTheme.textMuted,
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    _searchQuery = '';
+                                  });
+                                },
+                              )
+                            : null,
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                      ),
+                    ),
+                  ).animate()
+                    .fadeIn(duration: 400.ms)
+                    .slideY(begin: -0.1, end: 0),
+                  
+                  const SizedBox(height: AppTheme.spacingMd),
+                  
+                  // Category filters
+                  SizedBox(
+                    height: 44,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
+                      itemCount: _categories.length,
+                      separatorBuilder: (_, __) => const SizedBox(width: AppTheme.spacingSm),
+                      itemBuilder: (context, index) {
+                        final category = _categories[index];
+                        final isSelected = _selectedCategory == category ||
+                            (category == 'All' && _selectedCategory == null);
+
+                        return GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _selectedCategory = category == 'All' ? null : category;
+                            });
+                          },
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              gradient: isSelected ? AppTheme.audacityGradient : null,
+                              color: isSelected ? null : Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: isSelected ? [
+                                BoxShadow(
+                                  color: AppTheme.audacityColor.withOpacity(0.3),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ] : AppTheme.shadowSmall,
+                            ),
+                            child: Text(
+                              category,
+                              style: TextStyle(
+                                color: isSelected ? Colors.white : AppTheme.textSecondary,
+                                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ).animate()
+                    .fadeIn(delay: 100.ms, duration: 400.ms),
+                ],
               ),
             ),
           ),
-
-          // Category filters
-          SizedBox(
-            height: 40,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingMd),
-              itemCount: _categories.length,
-              separatorBuilder: (_, __) => const SizedBox(width: AppTheme.spacingSm),
-              itemBuilder: (context, index) {
-                final category = _categories[index];
-                final isSelected = _selectedCategory == category ||
-                    (category == 'All' && _selectedCategory == null);
-
-                return FilterChip(
-                  label: Text(category),
-                  selected: isSelected,
-                  onSelected: (_) {
-                    setState(() {
-                      _selectedCategory = category == 'All' ? null : category;
-                    });
-                  },
-                  backgroundColor: Colors.white,
-                  selectedColor: AppTheme.audacityColor.withOpacity(0.2),
-                  checkmarkColor: AppTheme.audacityColor,
-                  labelStyle: TextStyle(
-                    color: isSelected ? AppTheme.audacityColor : AppTheme.textSecondary,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                  ),
-                );
-              },
-            ),
+          
+          const SliverToBoxAdapter(
+            child: SizedBox(height: AppTheme.spacingMd),
           ),
 
-          const SizedBox(height: AppTheme.spacingMd),
-
           // Scripts list
-          Expanded(
-            child: scriptsAsync.when(
-              data: (scripts) {
-                final filtered = _filterScripts(scripts);
+          scriptsAsync.when(
+            data: (scripts) {
+              final filtered = _filterScripts(scripts);
 
-                if (filtered.isEmpty) {
-                  return Center(
+              if (filtered.isEmpty) {
+                return SliverFillRemaining(
+                  child: Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(
-                          Icons.search_off,
-                          size: 64,
-                          color: AppTheme.textMuted.withOpacity(0.5),
+                        Container(
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(
+                            color: AppTheme.textMuted.withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.search_off_rounded,
+                            size: 48,
+                            color: AppTheme.textMuted,
+                          ),
                         ),
                         const SizedBox(height: AppTheme.spacingMd),
                         Text(
                           'No scripts found',
                           style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: AppTheme.textMuted,
+                            color: AppTheme.textSecondary,
                           ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Try a different search term',
+                          style: Theme.of(context).textTheme.bodySmall,
                         ),
                       ],
                     ),
-                  );
-                }
-
-                return ListView.separated(
-                  padding: const EdgeInsets.all(AppTheme.spacingMd),
-                  itemCount: filtered.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: AppTheme.spacingMd),
-                  itemBuilder: (context, index) {
-                    final script = filtered[index];
-                    return _buildScriptCard(script);
-                  },
+                  ),
                 );
-              },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, _) => Center(child: Text('Error: $error')),
+              }
+
+              return SliverPadding(
+                padding: const EdgeInsets.only(
+                  left: AppTheme.spacingMd,
+                  right: AppTheme.spacingMd,
+                  bottom: 100, // Space for floating nav
+                ),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final script = filtered[index];
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: AppTheme.spacingMd),
+                        child: _buildScriptCard(script)
+                          .animate()
+                          .fadeIn(delay: Duration(milliseconds: 200 + (index * 80)), duration: 400.ms)
+                          .slideX(begin: 0.1, end: 0),
+                      );
+                    },
+                    childCount: filtered.length,
+                  ),
+                ),
+              );
+            },
+            loading: () => const SliverFillRemaining(
+              child: Center(
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppTheme.audacityColor,
+                ),
+              ),
+            ),
+            error: (error, _) => SliverFillRemaining(
+              child: Center(child: Text('Error: $error')),
             ),
           ),
         ],
@@ -150,8 +263,7 @@ class _ScriptsScreenState extends ConsumerState<ScriptsScreen> {
     );
   }
 
-  List<ScriptModel> _filterScripts(List<ScriptModel> scripts) {
-    return scripts.where((script) {
+  List<ScriptModel> _filterScripts(List<ScriptModel> scripts) => scripts.where((script) {
       final matchesSearch = _searchQuery.isEmpty ||
           script.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
           script.template.toLowerCase().contains(_searchQuery.toLowerCase());
@@ -161,118 +273,167 @@ class _ScriptsScreenState extends ConsumerState<ScriptsScreen> {
 
       return matchesSearch && matchesCategory;
     }).toList();
-  }
 
   Widget _buildScriptCard(ScriptModel script) {
     final riskColor = _getRiskColor(script.riskLevel);
+    final riskGradient = _getRiskGradient(script.riskLevel);
 
-    return InkWell(
-      onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => ScriptDetailScreen(script: script),
-          ),
-        );
-      },
-      borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-      child: Container(
-        padding: const EdgeInsets.all(AppTheme.spacingMd),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 2),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => ScriptDetailScreen(script: script),
             ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppTheme.spacingSm,
-                    vertical: 2,
+          );
+        },
+        borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+        child: Container(
+          padding: const EdgeInsets.all(AppTheme.spacingMd),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+            boxShadow: AppTheme.shadowSmall,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: riskGradient,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      script.riskLevel.toUpperCase(),
+                      style: const TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
                   ),
-                  decoration: BoxDecoration(
-                    color: riskColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
+                  const SizedBox(width: AppTheme.spacingSm),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.textMuted.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      script.category,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.textSecondary,
+                      ),
+                    ),
                   ),
-                  child: Text(
-                    script.riskLevel.toUpperCase(),
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: riskColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.timer_outlined,
+                          size: 14,
+                          color: riskColor,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${script.estimatedMinutes}m',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: riskColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppTheme.spacingMd),
+              Text(
+                script.title,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                script.template,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  height: 1.4,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: AppTheme.spacingMd),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.audacityColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.bolt_rounded,
+                          size: 14,
+                          color: AppTheme.audacityColor,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '+200 XP',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.audacityColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: riskColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      Icons.arrow_forward_rounded,
+                      size: 18,
                       color: riskColor,
                     ),
                   ),
-                ),
-                const SizedBox(width: AppTheme.spacingSm),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppTheme.spacingSm,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppTheme.textMuted.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
-                  ),
-                  child: Text(
-                    script.category,
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: AppTheme.textSecondary,
-                    ),
-                  ),
-                ),
-                const Spacer(),
-                Row(
-                  children: [
-                    const Icon(Icons.timer_outlined, size: 14, color: AppTheme.textMuted),
-                    const SizedBox(width: 2),
-                    Text(
-                      '${script.estimatedMinutes}m',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: AppTheme.spacingSm),
-            Text(
-              script.title,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: AppTheme.spacingXs),
-            Text(
-              script.template,
-              style: Theme.of(context).textTheme.bodySmall,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: AppTheme.spacingSm),
-            Row(
-              children: [
-                Text(
-                  '+200 XP',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.audacityColor,
-                  ),
-                ),
-                const Spacer(),
-                const Icon(
-                  Icons.chevron_right,
-                  color: AppTheme.textMuted,
-                ),
-              ],
-            ),
-          ],
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -291,58 +452,103 @@ class _ScriptsScreenState extends ConsumerState<ScriptsScreen> {
     }
   }
 
+  LinearGradient _getRiskGradient(String riskLevel) {
+    switch (riskLevel.toLowerCase()) {
+      case 'low':
+        return AppTheme.actionGradient;
+      case 'medium':
+        return AppTheme.enjoyGradient;
+      case 'high':
+        return AppTheme.audacityGradient;
+      default:
+        return AppTheme.primaryGradient;
+    }
+  }
+
   void _showInfoDialog() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => Dialog(
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+          borderRadius: BorderRadius.circular(AppTheme.radiusXLarge),
         ),
-        title: const Text('About Audacity Scripts'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Audacity scripts are pre-written templates to help you ask boldly in various situations.',
-            ),
-            const SizedBox(height: AppTheme.spacingMd),
-            _buildRiskLegend('Low', AppTheme.actionColor, 'Easy asks with high success rate'),
-            _buildRiskLegend('Medium', AppTheme.accentColor, 'Moderate challenge, moderate risk'),
-            _buildRiskLegend('High', AppTheme.audacityColor, 'Bold asks, potentially big rewards'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Got it'),
+        child: Padding(
+          padding: const EdgeInsets.all(AppTheme.spacingLg),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      gradient: AppTheme.audacityGradient,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.local_fire_department_rounded,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'About Audacity',
+                    style: Theme.of(context).textTheme.headlineMedium,
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppTheme.spacingMd),
+              Text(
+                'Audacity scripts are pre-written templates to help you ask boldly in various situations.',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: AppTheme.spacingLg),
+              _buildRiskLegend('Low', AppTheme.actionColor, AppTheme.actionGradient, 'Easy asks with high success rate'),
+              _buildRiskLegend('Medium', AppTheme.accentColor, AppTheme.enjoyGradient, 'Moderate challenge, moderate risk'),
+              _buildRiskLegend('High', AppTheme.audacityColor, AppTheme.audacityGradient, 'Bold asks, potentially big rewards'),
+              const SizedBox(height: AppTheme.spacingLg),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.audacityColor,
+                  ),
+                  child: const Text('Got it'),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildRiskLegend(String label, Color color, String description) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingXs),
+  Widget _buildRiskLegend(String label, Color color, LinearGradient gradient, String description) => Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingSm),
       child: Row(
         children: [
           Container(
-            width: 12,
-            height: 12,
+            width: 32,
+            height: 20,
             decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(2),
+              gradient: gradient,
+              borderRadius: BorderRadius.circular(6),
             ),
           ),
-          const SizedBox(width: AppTheme.spacingSm),
+          const SizedBox(width: AppTheme.spacingMd),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   label,
-                  style: const TextStyle(fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: color,
+                  ),
                 ),
                 Text(
                   description,
@@ -354,5 +560,4 @@ class _ScriptsScreenState extends ConsumerState<ScriptsScreen> {
         ],
       ),
     );
-  }
 }

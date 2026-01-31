@@ -117,6 +117,77 @@ OPENAI_API_KEY=your_key_here
 
 For Firebase, the configuration is handled by FlutterFire CLI which generates `firebase_options.dart`.
 
+## AI Features Setup
+
+Easy Mode includes AI-powered coaching features that provide personalized task descriptions and daily insights.
+
+### Features
+
+| Feature | Description |
+|---------|-------------|
+| **Task Personalization** | AI personalizes task descriptions based on user context (name, streak, level, goals) and provides a "Coach Tip" |
+| **Daily AI Insights** | Generates personalized daily coaching messages with greeting, insight, focus area, and encouragement |
+
+### Setup OpenAI API Key
+
+1. **Get an OpenAI API Key**
+   - Visit [platform.openai.com](https://platform.openai.com)
+   - Create an account or sign in
+   - Navigate to API Keys and create a new key
+
+2. **Set the API key in Firebase Functions config**
+   ```bash
+   cd functions
+   firebase functions:config:set openai.key="YOUR_OPENAI_API_KEY"
+   ```
+
+3. **Deploy the functions**
+   ```bash
+   firebase deploy --only functions
+   ```
+
+4. **Verify deployment**
+   ```bash
+   firebase functions:config:get
+   ```
+   You should see your key configured (partially masked).
+
+### Local Development with Emulator
+
+To test AI features locally without deploying:
+
+```bash
+cd functions
+
+# Set environment variable for emulator
+export OPENAI_KEY="your_key_here"
+
+# Or create .runtimeconfig.json for emulator
+echo '{"openai":{"key":"YOUR_OPENAI_API_KEY"}}' > .runtimeconfig.json
+
+# Start the emulator
+firebase emulators:start --only functions
+```
+
+### Cost Estimates
+
+The AI features use OpenAI's `gpt-4o-mini` model for cost efficiency:
+
+| Operation | Tokens | Est. Cost |
+|-----------|--------|-----------|
+| Task Personalization | ~300 | ~$0.0005 |
+| Daily Insight | ~250 | ~$0.0004 |
+| **Per user per day** | ~550 | ~$0.001 |
+
+### Disabling AI Features
+
+If you want to run without AI features, they gracefully fall back to default content when:
+- OpenAI API key is not configured
+- API calls fail for any reason
+- User is offline
+
+No code changes needed - the app will show original task descriptions and static quotes instead.
+
 ## Running Tests
 
 ### Flutter Tests

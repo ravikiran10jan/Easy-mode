@@ -9,7 +9,7 @@ import '../../../core/constants/app_constants.dart';
 class ScriptDetailScreen extends ConsumerStatefulWidget {
   final ScriptModel script;
 
-  const ScriptDetailScreen({super.key, required this.script});
+  const ScriptDetailScreen({required this.script, super.key});
 
   @override
   ConsumerState<ScriptDetailScreen> createState() => _ScriptDetailScreenState();
@@ -168,8 +168,7 @@ class _ScriptDetailScreenState extends ConsumerState<ScriptDetailScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
+  Widget build(BuildContext context) => Scaffold(
       appBar: AppBar(
         title: const Text('Script Detail'),
       ),
@@ -383,5 +382,4 @@ class _ScriptDetailScreenState extends ConsumerState<ScriptDetailScreen> {
         ),
       ),
     );
-  }
 }

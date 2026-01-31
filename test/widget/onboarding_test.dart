@@ -6,14 +6,12 @@ import 'package:easy_mode/core/theme/app_theme.dart';
 
 void main() {
   group('OnboardingScreen', () {
-    Widget createWidgetUnderTest() {
-      return ProviderScope(
+    Widget createWidgetUnderTest() => ProviderScope(
         child: MaterialApp(
           theme: AppTheme.lightTheme,
           home: const OnboardingScreen(),
         ),
       );
-    }
 
     testWidgets('shows welcome page initially', (tester) async {
       await tester.pumpWidget(createWidgetUnderTest());
