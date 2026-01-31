@@ -156,4 +156,120 @@ class AiService {
       );
     }
   }
+
+  /// Get a smart task recommendation based on user behavior patterns
+  Future<SmartRecommendationResponse> getSmartRecommendation({
+    String? preferredType,
+  }) async {
+    try {
+      final callable = _functions.httpsCallable('getSmartRecommendation');
+
+      final Map<String, dynamic> data = {};
+      if (preferredType != null) {
+        data['preferredType'] = preferredType;
+      }
+
+      final result = await callable.call<Map<String, dynamic>>(data);
+
+      return SmartRecommendationResponse.fromMap(
+        Map<String, dynamic>.from(result.data),
+      );
+    } catch (e) {
+      return SmartRecommendationResponse(
+        success: false,
+        error: e.toString(),
+      );
+    }
+  }
 }
+
+/// Reasoning behind a smart recommendation
+class RecommendationReasoning {
+  final String whyThisTask;
+  final String expectedImpact;
+  final String personalizedTip;
+
+  RecommendationReasoning({
+    required this.whyThisTask,
+    required this.expectedImpact,
+    required this.personalizedTip,
+  });
+
+  factory RecommendationReasoning.fromMap(Map<String, dynamic> map) =>
+      RecommendationReasoning(
+        whyThisTask: map['whyThisTask'] as String? ?? '',
+        expectedImpact: map['expectedImpact'] as String? ?? '',
+        personalizedTip: map['personalizedTip'] as String? ?? '',
+      );
+}
+
+/// Behavior insights from user history
+class BehaviorInsights {
+  final int totalTasksCompleted;
+  final String strongestType;
+  final int peakHour;
+
+  BehaviorInsights({
+    required this.totalTasksCompleted,
+    required this.strongestType,
+    required this.peakHour,
+  });
+
+  factory BehaviorInsights.fromMap(Map<String, dynamic> map) => BehaviorInsights(
+        totalTasksCompleted: map['totalTasksCompleted'] as int? ?? 0,
+        strongestType: map['strongestType'] as String? ?? 'action',
+        peakHour: map['peakHour'] as int? ?? 9,
+      );
+}
+
+/// Response from smart task recommendation
+class SmartRecommendationResponse {
+  final bool success;
+  final TaskModel? task;
+  final RecommendationReasoning? reasoning;
+  final BehaviorInsights? behaviorInsights;
+  final String? error;
+
+  SmartRecommendationResponse({
+    required this.success,
+    this.task,
+    this.reasoning,
+    this.behaviorInsights,
+    this.error,
+  });
+
+  factory SmartRecommendationResponse.fromMap(Map<String, dynamic> map) {
+    final recommendation = map['recommendation'] as Map<String, dynamic>?;
+
+    TaskModel? task;
+    RecommendationReasoning? reasoning;
+    BehaviorInsights? insights;
+
+    if (recommendation != null) {
+      final taskMap = recommendation['task'] as Map<String, dynamic>?;
+      if (taskMap != null) {
+        task = TaskModel.fromMap(taskMap, taskMap['id'] as String? ?? '');
+      }
+
+      final reasoningMap = recommendation['reasoning'] as Map<String, dynamic>?;
+      if (reasoningMap != null) {
+        reasoning = RecommendationReasoning.fromMap(reasoningMap);
+      }
+
+      final insightsMap =
+          recommendation['behaviorInsights'] as Map<String, dynamic>?;
+      if (insightsMap != null) {
+        insights = BehaviorInsights.fromMap(insightsMap);
+      }
+    }
+
+    return SmartRecommendationResponse(
+      success: map['success'] as bool? ?? false,
+      task: task,
+      reasoning: reasoning,
+      behaviorInsights: insights,
+      error: map['error'] as String?,
+    );
+  }
+}
+

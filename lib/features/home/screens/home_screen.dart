@@ -129,8 +129,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   
                   // Daily Task Card
                   dailyTask.when(
-                    data: (task) => DailyTaskCard(
-                      task: task,
+                    data: (recommendation) => DailyTaskCard(
+                      task: recommendation.task,
+                      aiReasoning: recommendation.reasoning,
+                      behaviorInsights: recommendation.insights,
                       onComplete: _showConfetti,
                     ).animate()
                       .fadeIn(delay: 300.ms, duration: 500.ms)

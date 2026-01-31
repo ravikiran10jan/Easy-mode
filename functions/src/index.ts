@@ -4,13 +4,13 @@ import OpenAI from 'openai';
 
 admin.initializeApp();
 
-// Initialize OpenAI client - API key from Firebase config
+// Initialize OpenAI client - API key from environment variable
 const getOpenAIClient = () => {
-  const apiKey = functions.config().openai?.key;
+  const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     throw new functions.https.HttpsError(
       'failed-precondition',
-      'OpenAI API key not configured. Run: firebase functions:config:set openai.key="YOUR_KEY"'
+      'OpenAI API key not configured. Add OPENAI_API_KEY to functions/.env file.'
     );
   }
   return new OpenAI({ apiKey });
@@ -474,7 +474,7 @@ Respond in JSON format:
 export const sendDailyNudge = functions.pubsub
   .schedule('0 9 * * *')
   .timeZone('UTC')
-  .onRun(async (context) => {
+  .onRun(async (_context) => {
     try {
       // Get users who have notifications enabled
       const usersSnapshot = await db.collection('users')
@@ -508,3 +508,394 @@ export const sendDailyNudge = functions.pubsub
       throw error;
     }
   });
+
+// ============ SMART RECOMMENDATIONS ============
+
+interface UserBehaviorPattern {
+  preferredTaskTypes: { [type: string]: number };
+  preferredCategories: { [category: string]: number };
+  successRateByType: { [type: string]: number };
+  avgCompletionTime: number;
+  totalTasksCompleted: number;
+  recentTaskIds: string[];
+  peakActivityHour: number;
+}
+
+interface TaskCandidate {
+  id: string;
+  title: string;
+  description: string;
+  type: string;
+  category?: string;
+  estimatedMinutes: number;
+  score: number;
+  scoreReasons: string[];
+}
+
+/**
+ * Analyze user behavior patterns from their history
+ */
+async function analyzeUserBehavior(userId: string): Promise<UserBehaviorPattern> {
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+  // Get user's completed tasks
+  const tasksSnapshot = await db
+    .collection('users')
+    .doc(userId)
+    .collection('userTasks')
+    .where('completed', '==', true)
+    .where('date', '>=', thirtyDaysAgo.toISOString())
+    .get();
+
+  // Get user's script attempts
+  const scriptsSnapshot = await db
+    .collection('users')
+    .doc(userId)
+    .collection('userScripts')
+    .where('attemptDate', '>=', thirtyDaysAgo.toISOString())
+    .get();
+
+  const pattern: UserBehaviorPattern = {
+    preferredTaskTypes: { action: 0, audacity: 0, enjoy: 0 },
+    preferredCategories: {},
+    successRateByType: { action: 0, audacity: 0, enjoy: 0 },
+    avgCompletionTime: 0,
+    totalTasksCompleted: 0,
+    recentTaskIds: [],
+    peakActivityHour: 9, // default
+  };
+
+  const typeAttempts: { [type: string]: number } = { action: 0, audacity: 0, enjoy: 0 };
+  const typeSuccesses: { [type: string]: number } = { action: 0, audacity: 0, enjoy: 0 };
+  const hourCounts: { [hour: number]: number } = {};
+  let totalTime = 0;
+
+  // Analyze tasks
+  tasksSnapshot.forEach((doc) => {
+    const task = doc.data();
+    const taskType = task.type || 'action';
+    
+    pattern.preferredTaskTypes[taskType] = (pattern.preferredTaskTypes[taskType] || 0) + 1;
+    typeAttempts[taskType] = (typeAttempts[taskType] || 0) + 1;
+    typeSuccesses[taskType] = (typeSuccesses[taskType] || 0) + 1;
+    
+    if (task.category) {
+      pattern.preferredCategories[task.category] = (pattern.preferredCategories[task.category] || 0) + 1;
+    }
+    
+    if (task.duration) {
+      totalTime += task.duration;
+    }
+    
+    if (task.completedAt) {
+      const hour = new Date(task.completedAt).getHours();
+      hourCounts[hour] = (hourCounts[hour] || 0) + 1;
+    }
+    
+    pattern.recentTaskIds.push(task.taskId);
+    pattern.totalTasksCompleted++;
+  });
+
+  // Analyze scripts (audacity attempts)
+  scriptsSnapshot.forEach((doc) => {
+    const script = doc.data();
+    typeAttempts.audacity++;
+    
+    if (script.outcome === 'success' || script.outcome === 'partial') {
+      typeSuccesses.audacity++;
+    }
+    
+    if (script.attemptDate) {
+      const hour = new Date(script.attemptDate).getHours();
+      hourCounts[hour] = (hourCounts[hour] || 0) + 1;
+    }
+  });
+
+  // Calculate success rates
+  for (const type of Object.keys(typeAttempts)) {
+    if (typeAttempts[type] > 0) {
+      pattern.successRateByType[type] = typeSuccesses[type] / typeAttempts[type];
+    }
+  }
+
+  // Find peak activity hour
+  let maxHour = 9;
+  let maxCount = 0;
+  for (const [hour, count] of Object.entries(hourCounts)) {
+    if (count > maxCount) {
+      maxCount = count;
+      maxHour = parseInt(hour);
+    }
+  }
+  pattern.peakActivityHour = maxHour;
+
+  // Average completion time
+  if (pattern.totalTasksCompleted > 0) {
+    pattern.avgCompletionTime = totalTime / pattern.totalTasksCompleted;
+  }
+
+  return pattern;
+}
+
+/**
+ * Score candidate tasks based on user behavior patterns
+ */
+function scoreTasksForUser(
+  tasks: admin.firestore.QueryDocumentSnapshot[],
+  pattern: UserBehaviorPattern,
+  currentHour: number
+): TaskCandidate[] {
+  return tasks.map((doc) => {
+    const task = doc.data();
+    const candidate: TaskCandidate = {
+      id: doc.id,
+      title: task.title,
+      description: task.description,
+      type: task.type || 'action',
+      category: task.category,
+      estimatedMinutes: task.estimatedMinutes || 5,
+      score: 50, // base score
+      scoreReasons: [],
+    };
+
+    // Don't recommend recently completed tasks
+    if (pattern.recentTaskIds.includes(doc.id)) {
+      candidate.score -= 30;
+      candidate.scoreReasons.push('Recently completed');
+    }
+
+    // Boost preferred task types
+    const typePreference = pattern.preferredTaskTypes[candidate.type] || 0;
+    if (typePreference > 3) {
+      candidate.score += 15;
+      candidate.scoreReasons.push(`User prefers ${candidate.type} tasks`);
+    }
+
+    // Boost high success rate types
+    const successRate = pattern.successRateByType[candidate.type] || 0;
+    if (successRate > 0.7) {
+      candidate.score += 10;
+      candidate.scoreReasons.push(`High success rate with ${candidate.type}`);
+    } else if (successRate < 0.3 && pattern.totalTasksCompleted > 5) {
+      // If struggling with a type, occasionally suggest it but with lower priority
+      candidate.score -= 5;
+      candidate.scoreReasons.push(`Building skills in ${candidate.type}`);
+    }
+
+    // Boost preferred categories
+    if (candidate.category && pattern.preferredCategories[candidate.category] > 2) {
+      candidate.score += 10;
+      candidate.scoreReasons.push(`Enjoys ${candidate.category} category`);
+    }
+
+    // Time-appropriate tasks
+    const hourDiff = Math.abs(currentHour - pattern.peakActivityHour);
+    if (hourDiff <= 2) {
+      candidate.score += 5;
+      candidate.scoreReasons.push('Peak activity time');
+    }
+
+    // Duration matching
+    if (pattern.avgCompletionTime > 0) {
+      const durationDiff = Math.abs(candidate.estimatedMinutes * 60 - pattern.avgCompletionTime);
+      if (durationDiff < 120) { // within 2 minutes
+        candidate.score += 5;
+        candidate.scoreReasons.push('Matches typical task duration');
+      }
+    }
+
+    // Variety boost - suggest underused types occasionally
+    const totalByType = Object.values(pattern.preferredTaskTypes).reduce((a, b) => a + b, 0);
+    if (totalByType > 10) {
+      const typeRatio = (pattern.preferredTaskTypes[candidate.type] || 0) / totalByType;
+      if (typeRatio < 0.2) {
+        candidate.score += 8;
+        candidate.scoreReasons.push(`Encourages variety with ${candidate.type}`);
+      }
+    }
+
+    return candidate;
+  }).sort((a, b) => b.score - a.score);
+}
+
+/**
+ * AI-powered smart task recommendation
+ * Combines rule-based scoring with AI selection
+ */
+export const getSmartRecommendation = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError(
+      'unauthenticated',
+      'Must be authenticated to use this feature.'
+    );
+  }
+
+  const userId = context.auth.uid;
+  const { preferredType } = data; // optional type filter
+
+  try {
+    // Get user data
+    const userDoc = await db.collection('users').doc(userId).get();
+    const userData = userDoc.exists ? userDoc.data()! : {};
+
+    // Analyze user behavior
+    const behaviorPattern = await analyzeUserBehavior(userId);
+
+    // Get all available tasks
+    let tasksQuery = db.collection('tasks') as admin.firestore.Query;
+    if (preferredType) {
+      tasksQuery = tasksQuery.where('type', '==', preferredType);
+    }
+    const tasksSnapshot = await tasksQuery.get();
+
+    if (tasksSnapshot.empty) {
+      return {
+        success: false,
+        error: 'No tasks available',
+        recommendation: null,
+      };
+    }
+
+    // Score tasks based on behavior patterns
+    const currentHour = new Date().getHours();
+    const scoredTasks = scoreTasksForUser(tasksSnapshot.docs, behaviorPattern, currentHour);
+
+    // Take top 5 candidates for AI selection
+    const topCandidates = scoredTasks.slice(0, 5);
+
+    // Use AI to make final selection with reasoning
+    const openai = getOpenAIClient();
+
+    const systemPrompt = `You are Easy Mode, an AI life coach. Your job is to select the most impactful task for the user RIGHT NOW based on their profile and behavioral patterns.
+
+Consider:
+- Their current streak and momentum
+- What types of tasks they've been successful with
+- Areas where they could grow
+- The time of day and their typical patterns
+- Balance between comfort zone and growth`;
+
+    const userPrompt = `Select the best task for this user:
+
+USER PROFILE:
+- Name: ${userData.name || 'User'}
+- Level: ${userData.level || 1}
+- Streak: ${userData.streak || 0} days
+- Goal: ${userData.profile?.goal || 'Build confidence'}
+- Challenge: ${userData.profile?.pain || 'Getting started'}
+
+BEHAVIOR PATTERNS:
+- Total tasks completed (30 days): ${behaviorPattern.totalTasksCompleted}
+- Preferred types: ${JSON.stringify(behaviorPattern.preferredTaskTypes)}
+- Success rates: ${JSON.stringify(behaviorPattern.successRateByType)}
+- Peak activity hour: ${behaviorPattern.peakActivityHour}:00
+
+CANDIDATE TASKS (pre-scored by rules):
+${topCandidates.map((t, i) => `
+${i + 1}. [Score: ${t.score}] ${t.title}
+   Type: ${t.type} | Duration: ${t.estimatedMinutes}min
+   Description: ${t.description}
+   Scoring reasons: ${t.scoreReasons.join(', ')}
+`).join('')}
+
+Current time: ${new Date().toLocaleTimeString()}
+
+Select ONE task and explain why it's the best choice right now.
+
+Respond in JSON:
+{
+  "selectedTaskId": "task_id_here",
+  "whyThisTask": "Brief explanation of why this task is perfect for them right now (1-2 sentences)",
+  "expectedImpact": "What completing this will do for them (1 sentence)",
+  "personalizedTip": "A specific tip for this user on this task (1 sentence)"
+}`;
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ],
+      temperature: 0.7,
+      max_tokens: 300,
+      response_format: { type: 'json_object' }
+    });
+
+    const content = response.choices[0]?.message?.content;
+    if (!content) {
+      throw new Error('Empty response from AI');
+    }
+
+    const aiSelection = JSON.parse(content);
+    
+    // Find the selected task
+    const selectedTask = topCandidates.find(t => t.id === aiSelection.selectedTaskId) || topCandidates[0];
+
+    // Log recommendation for analytics
+    await db.collection('analytics').add({
+      event: 'smart_recommendation',
+      userId: userId,
+      selectedTaskId: selectedTask.id,
+      candidateCount: topCandidates.length,
+      behaviorPatternSummary: {
+        totalTasks: behaviorPattern.totalTasksCompleted,
+        preferredType: Object.entries(behaviorPattern.preferredTaskTypes)
+          .sort(([,a], [,b]) => b - a)[0]?.[0] || 'action',
+      },
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    return {
+      success: true,
+      recommendation: {
+        task: {
+          id: selectedTask.id,
+          title: selectedTask.title,
+          description: selectedTask.description,
+          type: selectedTask.type,
+          category: selectedTask.category,
+          estimatedMinutes: selectedTask.estimatedMinutes,
+        },
+        reasoning: {
+          whyThisTask: aiSelection.whyThisTask,
+          expectedImpact: aiSelection.expectedImpact,
+          personalizedTip: aiSelection.personalizedTip,
+        },
+        behaviorInsights: {
+          totalTasksCompleted: behaviorPattern.totalTasksCompleted,
+          strongestType: Object.entries(behaviorPattern.preferredTaskTypes)
+            .sort(([,a], [,b]) => b - a)[0]?.[0] || 'action',
+          peakHour: behaviorPattern.peakActivityHour,
+        },
+      },
+    };
+  } catch (error) {
+    console.error('Error getting smart recommendation:', error);
+
+    // Fallback to random task
+    const tasksSnapshot = await db.collection('tasks').limit(5).get();
+    const randomDoc = tasksSnapshot.docs[Math.floor(Math.random() * tasksSnapshot.docs.length)];
+    const fallbackTask = randomDoc?.data();
+
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      recommendation: fallbackTask ? {
+        task: {
+          id: randomDoc.id,
+          title: fallbackTask.title,
+          description: fallbackTask.description,
+          type: fallbackTask.type,
+          estimatedMinutes: fallbackTask.estimatedMinutes,
+        },
+        reasoning: {
+          whyThisTask: 'A great way to build momentum today.',
+          expectedImpact: 'Every small action moves you forward.',
+          personalizedTip: 'Focus on starting, not perfecting.',
+        },
+      } : null,
+    };
+  }
+});
+

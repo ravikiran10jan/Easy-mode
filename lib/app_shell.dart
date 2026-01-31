@@ -154,7 +154,7 @@ class _NavItem extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeOutCubic,
         padding: EdgeInsets.symmetric(
-          horizontal: isActive ? 16 : 12,
+          horizontal: isActive ? 12 : 8,
           vertical: 8,
         ),
         decoration: BoxDecoration(
@@ -167,7 +167,7 @@ class _NavItem extends StatelessWidget {
             Icon(
               isActive ? activeIcon : icon,
               color: isActive ? activeColor : AppTheme.textMuted,
-              size: 24,
+              size: 22,
             ).animate(target: isActive ? 1 : 0)
               .scale(
                 begin: const Offset(1, 1),
@@ -175,11 +175,11 @@ class _NavItem extends StatelessWidget {
                 duration: 200.ms,
               ),
             if (isActive) ...[
-              const SizedBox(width: 6),
+              const SizedBox(width: 4),
               Text(
                 label,
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: 11,
                   fontWeight: FontWeight.w600,
                   color: activeColor,
                 ),

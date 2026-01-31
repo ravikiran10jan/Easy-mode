@@ -2,14 +2,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/providers/auth_providers.dart';
 import '../../../core/models/task_model.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/services/ai_service.dart';
 
-/// State for daily task
+/// State for daily task with AI reasoning
 class DailyTaskState {
   final TaskModel? task;
   final bool isTimerRunning;
   final Duration elapsedTime;
   final bool isCompleted;
   final bool isLoading;
+  final RecommendationReasoning? aiReasoning;
+  final BehaviorInsights? behaviorInsights;
 
   DailyTaskState({
     this.task,
@@ -17,6 +20,8 @@ class DailyTaskState {
     this.elapsedTime = Duration.zero,
     this.isCompleted = false,
     this.isLoading = false,
+    this.aiReasoning,
+    this.behaviorInsights,
   });
 
   DailyTaskState copyWith({
@@ -25,20 +30,49 @@ class DailyTaskState {
     Duration? elapsedTime,
     bool? isCompleted,
     bool? isLoading,
+    RecommendationReasoning? aiReasoning,
+    BehaviorInsights? behaviorInsights,
   }) => DailyTaskState(
       task: task ?? this.task,
       isTimerRunning: isTimerRunning ?? this.isTimerRunning,
       elapsedTime: elapsedTime ?? this.elapsedTime,
       isCompleted: isCompleted ?? this.isCompleted,
       isLoading: isLoading ?? this.isLoading,
+      aiReasoning: aiReasoning ?? this.aiReasoning,
+      behaviorInsights: behaviorInsights ?? this.behaviorInsights,
     );
 }
 
-/// Daily task provider that rotates through task types
-final dailyTaskProvider = FutureProvider<TaskModel>((ref) async {
+/// Smart recommendation response with task and reasoning
+class SmartTaskRecommendation {
+  final TaskModel task;
+  final RecommendationReasoning? reasoning;
+  final BehaviorInsights? insights;
+
+  SmartTaskRecommendation({
+    required this.task,
+    this.reasoning,
+    this.insights,
+  });
+}
+
+/// Smart daily task provider using AI recommendations
+final dailyTaskProvider = FutureProvider<SmartTaskRecommendation>((ref) async {
+  final aiService = ref.watch(aiServiceProvider);
   final firestoreService = ref.watch(firestoreServiceProvider);
   
-  // Determine today's task type based on day of week
+  // Try smart recommendation first
+  final recommendation = await aiService.getSmartRecommendation();
+  
+  if (recommendation.success && recommendation.task != null) {
+    return SmartTaskRecommendation(
+      task: recommendation.task!,
+      reasoning: recommendation.reasoning,
+      insights: recommendation.behaviorInsights,
+    );
+  }
+  
+  // Fallback to simple rotation if AI fails
   final dayOfWeek = DateTime.now().weekday;
   String taskType;
   
@@ -50,21 +84,24 @@ final dailyTaskProvider = FutureProvider<TaskModel>((ref) async {
     taskType = AppConstants.taskTypeEnjoy;
   }
   
-  // Try to get a random task of that type
   final taskData = await firestoreService.getRandomTaskByType(taskType);
   
   if (taskData != null) {
-    return TaskModel.fromMap(taskData, taskData['id'] as String);
+    return SmartTaskRecommendation(
+      task: TaskModel.fromMap(taskData, taskData['id'] as String),
+    );
   }
   
-  // Fallback task if no tasks in database
-  return TaskModel(
-    id: 'default',
-    title: 'Take One Small Action',
-    description: 'Pick one small task that\'s been on your mind and complete it in the next 5 minutes. It could be sending a message, making a note, or organizing something small.',
-    type: AppConstants.taskTypeAction,
-    estimatedMinutes: 5,
-    xpReward: AppConstants.xpTaskComplete,
+  // Ultimate fallback
+  return SmartTaskRecommendation(
+    task: TaskModel(
+      id: 'default',
+      title: 'Take One Small Action',
+      description: 'Pick one small task that\'s been on your mind and complete it in the next 5 minutes.',
+      type: AppConstants.taskTypeAction,
+      estimatedMinutes: 5,
+      xpReward: AppConstants.xpTaskComplete,
+    ),
   );
 });
 

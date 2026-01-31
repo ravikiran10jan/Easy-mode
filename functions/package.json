@@ -17,7 +17,7 @@
     "lint:fix": "eslint --ext .ts src/ --fix"
   },
   "engines": {
-    "node": "18"
+    "node": "20"
   },
   "dependencies": {
     "firebase-admin": "^11.11.0",

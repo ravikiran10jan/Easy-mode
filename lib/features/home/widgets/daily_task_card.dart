@@ -11,10 +11,14 @@ import '../../../core/services/ai_service.dart';
 /// Daily task card with timer, completion, and AI personalization
 class DailyTaskCard extends ConsumerStatefulWidget {
   final TaskModel task;
+  final RecommendationReasoning? aiReasoning;
+  final BehaviorInsights? behaviorInsights;
   final VoidCallback? onComplete;
 
   const DailyTaskCard({
     required this.task, super.key,
+    this.aiReasoning,
+    this.behaviorInsights,
     this.onComplete,
   });
 
@@ -484,6 +488,12 @@ class _DailyTaskCardState extends ConsumerState<DailyTaskCard> {
                   _buildCoachTip(taskColor),
                 ],
                 
+                // AI Reasoning - Why this task was recommended
+                if (widget.aiReasoning != null) ...[
+                  const SizedBox(height: AppTheme.spacingMd),
+                  _buildAiReasoning(taskColor),
+                ],
+                
                 const SizedBox(height: AppTheme.spacingLg),
                 
                 // Timer display
@@ -755,5 +765,89 @@ class _DailyTaskCardState extends ConsumerState<DailyTaskCard> {
     ),
   ).animate()
     .fadeIn(duration: 400.ms)
+    .slideY(begin: 0.1, end: 0);
+
+  Widget _buildAiReasoning(Color taskColor) => Container(
+    padding: const EdgeInsets.all(AppTheme.spacingMd),
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        colors: [
+          AppTheme.primaryColor.withOpacity(0.08),
+          AppTheme.secondaryColor.withOpacity(0.05),
+        ],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+      borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+      border: Border.all(
+        color: AppTheme.primaryColor.withOpacity(0.15),
+      ),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                gradient: AppTheme.primaryGradient,
+                borderRadius: BorderRadius.circular(AppTheme.radiusRound),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Icon(Icons.psychology, color: Colors.white, size: 12),
+                  SizedBox(width: 4),
+                  Text(
+                    'AI Selected',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 10,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Text(
+          widget.aiReasoning!.whyThisTask,
+          style: TextStyle(
+            color: AppTheme.textPrimary,
+            fontSize: 14,
+            height: 1.4,
+          ),
+        ),
+        if (widget.aiReasoning!.expectedImpact.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                Icons.trending_up_rounded,
+                color: AppTheme.successColor,
+                size: 16,
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  widget.aiReasoning!.expectedImpact,
+                  style: TextStyle(
+                    color: AppTheme.successColor,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
+    ),
+  ).animate()
+    .fadeIn(delay: 100.ms, duration: 400.ms)
     .slideY(begin: 0.1, end: 0);
 }

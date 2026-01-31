@@ -130,3 +130,6 @@ secrets/
 *.g.dart
 *.freezed.dart
 *.mocks.dart
+
+# Firebase Functions secrets
+functions/.env
