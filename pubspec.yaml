@@ -1,0 +1,72 @@
+name: easy_mode
+description: Easy Mode - AI Life Coach. Teaching Action, Audacity, and Enjoyment.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.2.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # Firebase
+  firebase_core: ^2.24.2
+  firebase_auth: ^4.16.0
+  cloud_firestore: ^4.14.0
+  firebase_messaging: ^14.7.10
+  firebase_storage: ^11.6.0
+  
+  # State Management
+  flutter_riverpod: ^2.4.10
+  riverpod_annotation: ^2.3.4
+  
+  # UI/UX
+  google_fonts: ^6.1.0
+  flutter_animate: ^4.5.0
+  lottie: ^3.1.0
+  confetti_widget: ^0.7.0
+  
+  # Notifications
+  flutter_local_notifications: ^16.3.2
+  
+  # Audio
+  just_audio: ^0.9.36
+  
+  # Auth
+  google_sign_in: ^6.2.1
+  
+  # Utils
+  intl: ^0.19.0
+  shared_preferences: ^2.2.2
+  uuid: ^4.3.3
+  
+  # Icons
+  cupertino_icons: ^1.0.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.1
+  riverpod_generator: ^2.3.11
+  build_runner: ^2.4.8
+  mockito: ^5.4.4
+  fake_cloud_firestore: ^2.4.7
+
+flutter:
+  uses-material-design: true
+  
+  assets:
+    - assets/images/
+    - assets/animations/
+  
+  fonts:
+    - family: Poppins
+      fonts:
+        - asset: assets/fonts/Poppins-Regular.ttf
+        - asset: assets/fonts/Poppins-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Poppins-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Poppins-Bold.ttf
+          weight: 700

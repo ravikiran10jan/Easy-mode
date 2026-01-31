@@ -1,0 +1,427 @@
+{
+  "scripts": [
+    {
+      "id": "script_1",
+      "title": "Ask for a Small Discount",
+      "category": "Shopping",
+      "template": "Hi! I love this product. Are there any promotions or discounts available today? I'm ready to buy if so.",
+      "riskLevel": "low",
+      "exampleOutcomes": [
+        "You might get 10-15% off",
+        "They might throw in a freebie",
+        "Worst case: polite 'no' and you still buy"
+      ],
+      "estimatedMinutes": 2,
+      "tips": "Smile and be friendly. Most retail staff have some discount authority."
+    },
+    {
+      "id": "script_2",
+      "title": "Request a Meeting with Your Manager",
+      "category": "Work",
+      "template": "Hi [Manager], I'd love to schedule 15 minutes to discuss my recent work and get your feedback on how I can grow in my role. Would you have time this week?",
+      "riskLevel": "low",
+      "exampleOutcomes": [
+        "Get valuable career feedback",
+        "Show initiative and interest in growth",
+        "Build a stronger relationship with your manager"
+      ],
+      "estimatedMinutes": 3,
+      "tips": "Come prepared with specific questions or topics to discuss."
+    },
+    {
+      "id": "script_3",
+      "title": "Ask for a Referral",
+      "category": "Work",
+      "template": "Hi [Name], I really enjoyed working with you on [project]. I'm currently looking for opportunities in [field]. Would you be comfortable referring me or connecting me with anyone in your network?",
+      "riskLevel": "medium",
+      "exampleOutcomes": [
+        "Get a warm introduction to new opportunities",
+        "Strengthen your professional relationship",
+        "Expand your network"
+      ],
+      "estimatedMinutes": 5,
+      "tips": "Make it easy for them by being specific about what you're looking for."
+    },
+    {
+      "id": "script_4",
+      "title": "Negotiate Your Salary",
+      "category": "Work",
+      "template": "Thank you for the offer. I'm very excited about this opportunity. Based on my research and experience, I was hoping for a salary in the range of [X-Y]. Is there flexibility to discuss this?",
+      "riskLevel": "high",
+      "exampleOutcomes": [
+        "Potentially significant increase in compensation",
+        "Demonstrates confidence and market awareness",
+        "Sets the tone for future negotiations"
+      ],
+      "estimatedMinutes": 10,
+      "tips": "Research market rates beforehand. Have specific accomplishments ready to justify your ask."
+    },
+    {
+      "id": "script_5",
+      "title": "Ask Someone to Coffee",
+      "category": "Social",
+      "template": "Hey [Name], I've really enjoyed our conversations about [topic]. Would you want to grab coffee sometime? I'd love to continue the discussion.",
+      "riskLevel": "medium",
+      "exampleOutcomes": [
+        "Make a new friend or connection",
+        "Learn something new",
+        "Expand your social circle"
+      ],
+      "estimatedMinutes": 2,
+      "tips": "Be genuine and specific about why you want to connect."
+    },
+    {
+      "id": "script_6",
+      "title": "Request a Deadline Extension",
+      "category": "Work",
+      "template": "Hi [Name], I wanted to give you an update on [project]. I've encountered [specific challenge] and want to ensure I deliver quality work. Would it be possible to extend the deadline by [time]?",
+      "riskLevel": "medium",
+      "exampleOutcomes": [
+        "Get more time to deliver quality work",
+        "Show professionalism by communicating proactively",
+        "Build trust through transparency"
+      ],
+      "estimatedMinutes": 5,
+      "tips": "Ask early, explain the reason, and propose a specific new deadline."
+    },
+    {
+      "id": "script_7",
+      "title": "Request Better Service at a Restaurant",
+      "category": "Social",
+      "template": "Excuse me, I ordered about [time] ago and haven't received my food yet. Could you check on the status? I appreciate your help.",
+      "riskLevel": "low",
+      "exampleOutcomes": [
+        "Get your food faster",
+        "Might receive a discount or free item",
+        "Practice standing up for yourself politely"
+      ],
+      "estimatedMinutes": 2,
+      "tips": "Be polite but direct. Staff usually appreciate knowing there's an issue."
+    },
+    {
+      "id": "script_8",
+      "title": "Ask for Feedback on Your Work",
+      "category": "Work",
+      "template": "Hi [Name], I'd really value your perspective on [project/work]. Do you have 10 minutes to share some feedback? I'm looking to improve.",
+      "riskLevel": "low",
+      "exampleOutcomes": [
+        "Receive valuable insights for improvement",
+        "Show that you value others' opinions",
+        "Build stronger working relationships"
+      ],
+      "estimatedMinutes": 3,
+      "tips": "Be specific about what aspect you want feedback on."
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task_1",
+      "title": "Send One Message",
+      "description": "Send one Slack or email message asking for 5 minutes of someone's time for help or advice.",
+      "type": "action",
+      "estimatedMinutes": 5,
+      "xpReward": 100,
+      "category": "communication"
+    },
+    {
+      "id": "task_2",
+      "title": "10-Minute Walk",
+      "description": "Book a 10-minute walk in your calendar right now and commit to taking it today.",
+      "type": "action",
+      "estimatedMinutes": 2,
+      "xpReward": 100,
+      "category": "health"
+    },
+    {
+      "id": "task_3",
+      "title": "Clear One Item",
+      "description": "Pick one small task from your to-do list that you've been avoiding and do it now.",
+      "type": "action",
+      "estimatedMinutes": 10,
+      "xpReward": 100,
+      "category": "productivity"
+    },
+    {
+      "id": "task_4",
+      "title": "Compliment Someone",
+      "description": "Give a genuine compliment to someone today. Notice something specific and positive.",
+      "type": "action",
+      "estimatedMinutes": 2,
+      "xpReward": 100,
+      "category": "social"
+    },
+    {
+      "id": "task_5",
+      "title": "Ask for Help",
+      "description": "Identify one thing you're stuck on and ask someone for help. It could be a colleague, friend, or even an online community.",
+      "type": "audacity",
+      "estimatedMinutes": 5,
+      "xpReward": 200,
+      "category": "growth"
+    },
+    {
+      "id": "task_6",
+      "title": "Try a New Route",
+      "description": "Take a different path to somewhere you go regularly. Notice what's different.",
+      "type": "enjoy",
+      "estimatedMinutes": 5,
+      "xpReward": 100,
+      "category": "mindfulness"
+    },
+    {
+      "id": "task_7",
+      "title": "Write Three Gratitudes",
+      "description": "Write down three things you're grateful for today. Be specific about why.",
+      "type": "enjoy",
+      "estimatedMinutes": 5,
+      "xpReward": 100,
+      "category": "mindfulness"
+    },
+    {
+      "id": "task_8",
+      "title": "Make One Phone Call",
+      "description": "Call someone you haven't talked to in a while. Even a 2-minute catch-up counts.",
+      "type": "audacity",
+      "estimatedMinutes": 10,
+      "xpReward": 200,
+      "category": "relationships"
+    }
+  ],
+  "rituals": [
+    {
+      "id": "ritual_1",
+      "title": "Morning Playlist",
+      "description": "Start your day with 5 minutes of your favorite upbeat music while you prepare.",
+      "steps": [
+        "Open your music app",
+        "Pick 2-3 songs that make you feel good",
+        "Let the music play while you get ready",
+        "Dance or move if you feel like it!"
+      ],
+      "estimatedMinutes": 5,
+      "category": "Morning",
+      "iconName": "music"
+    },
+    {
+      "id": "ritual_2",
+      "title": "Mindful Coffee",
+      "description": "Transform your coffee break into a mini meditation moment.",
+      "steps": [
+        "Make your favorite hot drink",
+        "Sit somewhere comfortable",
+        "Notice the warmth of the cup",
+        "Take slow sips and savor each one",
+        "Appreciate this moment of peace"
+      ],
+      "estimatedMinutes": 10,
+      "category": "Morning",
+      "iconName": "coffee"
+    },
+    {
+      "id": "ritual_3",
+      "title": "Sunshine Break",
+      "description": "Step outside for a brief moment of natural light and fresh air.",
+      "steps": [
+        "Step outside or open a window",
+        "Look up at the sky",
+        "Take 5 deep breaths",
+        "Notice something beautiful around you",
+        "Feel grateful for this moment"
+      ],
+      "estimatedMinutes": 3,
+      "category": "Anytime",
+      "iconName": "sun"
+    },
+    {
+      "id": "ritual_4",
+      "title": "Gratitude Note",
+      "description": "Write a quick thank you message to someone who made your day better.",
+      "steps": [
+        "Think of someone who helped you today",
+        "Write a quick message thanking them",
+        "Send it via text, email, or say it in person",
+        "Notice how it makes you feel"
+      ],
+      "estimatedMinutes": 5,
+      "category": "Evening",
+      "iconName": "heart"
+    },
+    {
+      "id": "ritual_5",
+      "title": "Photo Walk",
+      "description": "Take a short walk and capture one beautiful thing with your phone camera.",
+      "steps": [
+        "Go for a 5-minute walk",
+        "Look for something beautiful or interesting",
+        "Take a photo of it",
+        "Appreciate the beauty in everyday things"
+      ],
+      "estimatedMinutes": 10,
+      "category": "Anytime",
+      "iconName": "photo"
+    },
+    {
+      "id": "ritual_6",
+      "title": "Evening Wind-Down",
+      "description": "A simple routine to transition from work mode to rest mode.",
+      "steps": [
+        "Light a candle or dim the lights",
+        "Put away your phone for 10 minutes",
+        "Stretch your body gently",
+        "Think of one good thing from today",
+        "Take 5 slow, deep breaths"
+      ],
+      "estimatedMinutes": 10,
+      "category": "Evening",
+      "iconName": "candle"
+    },
+    {
+      "id": "ritual_7",
+      "title": "Mini Plant Check",
+      "description": "Spend a moment caring for a plant or appreciating nature.",
+      "steps": [
+        "Find a plant or go near some greenery",
+        "Look at it closely - notice the details",
+        "Water it if it needs it",
+        "Say something kind to it (really!)"
+      ],
+      "estimatedMinutes": 3,
+      "category": "Anytime",
+      "iconName": "plant"
+    },
+    {
+      "id": "ritual_8",
+      "title": "One Page Read",
+      "description": "Read just one page of a book you enjoy - no pressure for more.",
+      "steps": [
+        "Pick up a book you enjoy",
+        "Read just one page",
+        "Really absorb what you read",
+        "Put it down with no guilt"
+      ],
+      "estimatedMinutes": 5,
+      "category": "Anytime",
+      "iconName": "book"
+    },
+    {
+      "id": "ritual_9",
+      "title": "Music Discovery",
+      "description": "Listen to one new song you've never heard before.",
+      "steps": [
+        "Open your music app's 'Discover' or 'New Releases'",
+        "Pick a song that catches your eye",
+        "Listen to it fully without multitasking",
+        "Decide if you want to save it"
+      ],
+      "estimatedMinutes": 5,
+      "category": "Anytime",
+      "iconName": "music"
+    },
+    {
+      "id": "ritual_10",
+      "title": "Star Moment",
+      "description": "Acknowledge one thing you did well today, no matter how small.",
+      "steps": [
+        "Think about your day",
+        "Find one thing you handled well",
+        "Say to yourself: 'I did that well'",
+        "Smile and feel proud"
+      ],
+      "estimatedMinutes": 2,
+      "category": "Evening",
+      "iconName": "star"
+    }
+  ],
+  "badges": [
+    {
+      "id": "first_step",
+      "title": "First Step",
+      "description": "Complete your first task",
+      "iconName": "star",
+      "requirement": "tasks_completed",
+      "requiredCount": 1,
+      "category": "milestones"
+    },
+    {
+      "id": "week_warrior",
+      "title": "Week Warrior",
+      "description": "Maintain a 7-day streak",
+      "iconName": "military_tech",
+      "requirement": "streak",
+      "requiredCount": 7,
+      "category": "streaks"
+    },
+    {
+      "id": "bold_beginner",
+      "title": "Bold Beginner",
+      "description": "Complete your first audacity script",
+      "iconName": "local_fire_department",
+      "requirement": "audacity_completed",
+      "requiredCount": 1,
+      "category": "audacity"
+    },
+    {
+      "id": "joy_seeker",
+      "title": "Joy Seeker",
+      "description": "Complete 10 joy rituals",
+      "iconName": "favorite",
+      "requirement": "rituals_completed",
+      "requiredCount": 10,
+      "category": "enjoy"
+    },
+    {
+      "id": "streak_master",
+      "title": "Streak Master",
+      "description": "Maintain a 30-day streak",
+      "iconName": "whatshot",
+      "requirement": "streak",
+      "requiredCount": 30,
+      "category": "streaks"
+    },
+    {
+      "id": "level_5",
+      "title": "Rising Star",
+      "description": "Reach level 5",
+      "iconName": "trending_up",
+      "requirement": "level",
+      "requiredCount": 5,
+      "category": "milestones"
+    },
+    {
+      "id": "level_10",
+      "title": "Double Digits",
+      "description": "Reach level 10",
+      "iconName": "emoji_events",
+      "requirement": "level",
+      "requiredCount": 10,
+      "category": "milestones"
+    },
+    {
+      "id": "level_25",
+      "title": "Quarter Century",
+      "description": "Reach level 25",
+      "iconName": "workspace_premium",
+      "requirement": "level",
+      "requiredCount": 25,
+      "category": "milestones"
+    },
+    {
+      "id": "audacity_10",
+      "title": "Fearless Ten",
+      "description": "Complete 10 audacity scripts",
+      "iconName": "bolt",
+      "requirement": "audacity_completed",
+      "requiredCount": 10,
+      "category": "audacity"
+    },
+    {
+      "id": "action_hero",
+      "title": "Action Hero",
+      "description": "Complete 50 action tasks",
+      "iconName": "flash_on",
+      "requirement": "actions_completed",
+      "requiredCount": 50,
+      "category": "action"
+    }
+  ]
+}

@@ -1,0 +1,69 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+    
+    function isValidUserData() {
+      let data = request.resource.data;
+      return data.keys().hasAll(['name', 'email', 'createdAt']);
+    }
+    
+    // Users collection
+    match /users/{userId} {
+      // Users can read and write their own data
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
+      
+      // User subcollections
+      match /userTasks/{taskId} {
+        allow read, write: if isOwner(userId);
+      }
+      
+      match /userScripts/{scriptId} {
+        allow read, write: if isOwner(userId);
+      }
+      
+      match /userRituals/{ritualId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+    
+    // Public read-only collections (seeded content)
+    match /tasks/{taskId} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Only admin can write
+    }
+    
+    match /scripts/{scriptId} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Only admin can write
+    }
+    
+    match /rituals/{ritualId} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Only admin can write
+    }
+    
+    match /badges/{badgeId} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Only admin can write
+    }
+    
+    // Analytics collection - write only
+    match /analytics/{eventId} {
+      allow read: if false; // No client reads
+      allow create: if isAuthenticated();
+      allow update, delete: if false;
+    }
+  }
+}
