@@ -35,6 +35,8 @@ class AppConstants {
   static const String userScriptsCollection = 'userScripts';
   static const String ritualsCollection = 'rituals';
   static const String userRitualsCollection = 'userRituals';
+  static const String actionsCollection = 'actions';
+  static const String userActionsCollection = 'userActions';
   static const String badgesCollection = 'badges';
   static const String analyticsCollection = 'analytics';
 

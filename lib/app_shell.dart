@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'core/theme/app_theme.dart';
 import 'features/home/screens/home_screen.dart';
+import 'features/actions/screens/actions_screen.dart';
 import 'features/scripts/screens/scripts_screen.dart';
 import 'features/rituals/screens/rituals_screen.dart';
 import 'features/progress/screens/progress_screen.dart';
@@ -21,6 +22,7 @@ class AppShell extends ConsumerWidget {
 
     final screens = [
       const HomeScreen(),
+      const ActionsScreen(),
       const ScriptsScreen(),
       const RitualsScreen(),
       const ProgressScreen(),
@@ -71,37 +73,46 @@ class AppShell extends ConsumerWidget {
                 ),
                 _NavItem(
                   index: 1,
+                  icon: Icons.bolt_outlined,
+                  activeIcon: Icons.bolt_rounded,
+                  label: 'Action',
+                  currentIndex: currentIndex,
+                  color: AppTheme.actionColor,
+                  onTap: () => ref.read(navigationIndexProvider.notifier).state = 1,
+                ),
+                _NavItem(
+                  index: 2,
                   icon: Icons.local_fire_department_outlined,
                   activeIcon: Icons.local_fire_department_rounded,
                   label: 'Audacity',
                   currentIndex: currentIndex,
                   color: AppTheme.audacityColor,
-                  onTap: () => ref.read(navigationIndexProvider.notifier).state = 1,
+                  onTap: () => ref.read(navigationIndexProvider.notifier).state = 2,
                 ),
                 _NavItem(
-                  index: 2,
+                  index: 3,
                   icon: Icons.favorite_outline,
                   activeIcon: Icons.favorite_rounded,
                   label: 'Enjoy',
                   currentIndex: currentIndex,
                   color: AppTheme.enjoyColor,
-                  onTap: () => ref.read(navigationIndexProvider.notifier).state = 2,
-                ),
-                _NavItem(
-                  index: 3,
-                  icon: Icons.bar_chart_outlined,
-                  activeIcon: Icons.bar_chart_rounded,
-                  label: 'Progress',
-                  currentIndex: currentIndex,
                   onTap: () => ref.read(navigationIndexProvider.notifier).state = 3,
                 ),
                 _NavItem(
                   index: 4,
+                  icon: Icons.bar_chart_outlined,
+                  activeIcon: Icons.bar_chart_rounded,
+                  label: 'Progress',
+                  currentIndex: currentIndex,
+                  onTap: () => ref.read(navigationIndexProvider.notifier).state = 4,
+                ),
+                _NavItem(
+                  index: 5,
                   icon: Icons.person_outline,
                   activeIcon: Icons.person_rounded,
                   label: 'Profile',
                   currentIndex: currentIndex,
-                  onTap: () => ref.read(navigationIndexProvider.notifier).state = 4,
+                  onTap: () => ref.read(navigationIndexProvider.notifier).state = 5,
                 ),
               ],
             ),

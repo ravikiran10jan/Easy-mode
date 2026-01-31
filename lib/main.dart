@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -8,6 +9,17 @@ import 'core/providers/auth_providers.dart';
 import 'features/auth/screens/sign_in_screen.dart';
 import 'features/onboarding/screens/onboarding_screen.dart';
 import 'app_shell.dart';
+
+/// Custom scroll behavior that enables mouse drag scrolling on web
+class AppScrollBehavior extends MaterialScrollBehavior {
+  @override
+  Set<PointerDeviceKind> get dragDevices => {
+    PointerDeviceKind.touch,
+    PointerDeviceKind.mouse,
+    PointerDeviceKind.trackpad,
+    PointerDeviceKind.stylus,
+  };
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -30,6 +42,7 @@ class EasyModeApp extends ConsumerWidget {
       title: 'Easy Mode',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
+      scrollBehavior: AppScrollBehavior(),
       home: const AuthWrapper(),
     );
 }

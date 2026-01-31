@@ -1,0 +1,9 @@
+app_name: Easy Mode
+flavor: null
+
+android:
+  package_name: com.example.easy_mode
+
+ios:
+  bundle_id: com.example.easyMode
+  app_name: Easy Mode

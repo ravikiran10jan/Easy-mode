@@ -184,6 +184,36 @@ class FirestoreService {
         .add(ritualData);
   }
 
+  // ============ ACTION OPERATIONS ============
+
+  /// Get all actions
+  Future<List<Map<String, dynamic>>> getActions() async {
+    final snapshot = await _firestore
+        .collection(AppConstants.actionsCollection)
+        .get();
+    
+    return snapshot.docs.map((doc) => {...doc.data(), 'id': doc.id}).toList();
+  }
+
+  /// Get actions by category
+  Future<List<Map<String, dynamic>>> getActionsByCategory(String category) async {
+    final snapshot = await _firestore
+        .collection(AppConstants.actionsCollection)
+        .where('category', isEqualTo: category)
+        .get();
+    
+    return snapshot.docs.map((doc) => {...doc.data(), 'id': doc.id}).toList();
+  }
+
+  /// Log user action completion
+  Future<void> logUserAction(String uid, Map<String, dynamic> actionData) async {
+    await _firestore
+        .collection(AppConstants.usersCollection)
+        .doc(uid)
+        .collection(AppConstants.userActionsCollection)
+        .add(actionData);
+  }
+
   // ============ BADGE OPERATIONS ============
 
   /// Get all badges
