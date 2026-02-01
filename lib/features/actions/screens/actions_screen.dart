@@ -363,6 +363,10 @@ class _ActionsScreenState extends ConsumerState<ActionsScreen> {
         setState(() {
           _selectedAction = isSelected ? null : action;
         });
+        // Track action view when selected
+        if (!isSelected) {
+          ref.read(analyticsServiceProvider).trackActionView(action.id, action.category);
+        }
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
@@ -633,6 +637,7 @@ class _ActionsScreenState extends ConsumerState<ActionsScreen> {
     if (user == null) return;
 
     final firestoreService = ref.read(firestoreServiceProvider);
+    final analytics = ref.read(analyticsServiceProvider);
 
     // Log the action completion
     await firestoreService.logUserAction(user.uid, {
@@ -645,11 +650,8 @@ class _ActionsScreenState extends ConsumerState<ActionsScreen> {
     // Update user XP
     await firestoreService.updateUserXp(user.uid, action.xpReward);
 
-    // Log analytics
-    await firestoreService.logAnalyticsEvent('action_completed', {
-      'actionId': action.id,
-      'category': action.category,
-    });
+    // Track action completion analytics
+    await analytics.trackActionComplete(action.id, action.category, action.xpReward);
 
     if (mounted) {
       setState(() {

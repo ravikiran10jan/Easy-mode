@@ -24,6 +24,15 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
   String? _errorMessage;
 
   @override
+  void initState() {
+    super.initState();
+    // Track screen view
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(analyticsServiceProvider).trackScreenView('SignIn');
+    });
+  }
+
+  @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
@@ -38,16 +47,22 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
       _errorMessage = null;
     });
 
+    final analytics = ref.read(analyticsServiceProvider);
+    await analytics.trackSignInAttempt('email');
+
     try {
       final authService = ref.read(authServiceProvider);
       await authService.signInWithEmail(
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
+      await analytics.trackSignInSuccess('email');
       // Navigation handled by auth state listener
     } catch (e) {
+      final errorMsg = _getErrorMessage(e);
+      await analytics.trackSignInFailure('email', errorMsg);
       setState(() {
-        _errorMessage = _getErrorMessage(e);
+        _errorMessage = errorMsg;
       });
     } finally {
       if (mounted) {
@@ -64,13 +79,19 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
       _errorMessage = null;
     });
 
+    final analytics = ref.read(analyticsServiceProvider);
+    await analytics.trackSignInAttempt('google');
+
     try {
       final authService = ref.read(authServiceProvider);
       await authService.signInWithGoogle();
+      await analytics.trackSignInSuccess('google');
       // Navigation handled by auth state listener
     } catch (e) {
+      final errorMsg = _getErrorMessage(e);
+      await analytics.trackSignInFailure('google', errorMsg);
       setState(() {
-        _errorMessage = _getErrorMessage(e);
+        _errorMessage = errorMsg;
       });
     } finally {
       if (mounted) {

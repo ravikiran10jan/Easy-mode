@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
 import '../services/ai_service.dart';
+import '../services/analytics_service.dart';
 import '../models/user_model.dart';
 
 /// Firebase Auth instance provider
@@ -13,6 +14,9 @@ final firestoreServiceProvider = Provider<FirestoreService>((ref) => FirestoreSe
 
 /// AI service provider
 final aiServiceProvider = Provider<AiService>((ref) => AiService());
+
+/// Analytics service provider (singleton)
+final analyticsServiceProvider = Provider<AnalyticsService>((ref) => AnalyticsService());
 
 /// Auth service provider
 final authServiceProvider = Provider<AuthService>((ref) => AuthService(

@@ -189,6 +189,10 @@ class _RitualsScreenState extends ConsumerState<RitualsScreen> {
         setState(() {
           _selectedRitual = isSelected ? null : ritual;
         });
+        // Track ritual view when selected
+        if (!isSelected) {
+          ref.read(analyticsServiceProvider).trackRitualView(ritual.id);
+        }
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
@@ -429,6 +433,7 @@ class _RitualsScreenState extends ConsumerState<RitualsScreen> {
     if (user == null) return;
 
     final firestoreService = ref.read(firestoreServiceProvider);
+    final analytics = ref.read(analyticsServiceProvider);
 
     // Log the ritual completion
     await firestoreService.logUserRitual(user.uid, {
@@ -440,10 +445,8 @@ class _RitualsScreenState extends ConsumerState<RitualsScreen> {
     // Update user XP
     await firestoreService.updateUserXp(user.uid, 100);
 
-    // Log analytics
-    await firestoreService.logAnalyticsEvent('ritual_completed', {
-      'ritualId': _selectedRitual!.id,
-    });
+    // Track ritual completion analytics
+    await analytics.trackRitualComplete(_selectedRitual!.id, 100);
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(

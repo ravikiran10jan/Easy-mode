@@ -17,6 +17,7 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
+  static const _stepNames = ['Welcome', 'Challenge', 'Goal', 'Time'];
 
   // Onboarding data
   String? _selectedPain;
@@ -40,6 +41,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final List<int> _timeOptions = [5, 10, 15, 20];
 
   @override
+  void initState() {
+    super.initState();
+    // Track initial onboarding step view
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(analyticsServiceProvider).trackOnboardingStepView(0, _stepNames[0]);
+    });
+  }
+
+  @override
   void dispose() {
     _pageController.dispose();
     super.dispose();
@@ -47,6 +57,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   void _nextPage() {
     if (_currentPage < 3) {
+      // Track step completion before moving
+      final analytics = ref.read(analyticsServiceProvider);
+      Map<String, dynamic>? selection;
+      if (_currentPage == 1) selection = {'pain': _selectedPain};
+      if (_currentPage == 2) selection = {'goal': _selectedGoal};
+      analytics.trackOnboardingStepComplete(_currentPage, _stepNames[_currentPage], selection);
+      
       _pageController.nextPage(
         duration: const Duration(milliseconds: 400),
         curve: Curves.easeOutCubic,
@@ -93,8 +110,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       final firestoreService = ref.read(firestoreServiceProvider);
       await firestoreService.updateUserProfile(user.uid, profile);
       
-      // Log analytics event
-      await firestoreService.logAnalyticsEvent('onboarding_complete', {
+      // Track final step completion and onboarding complete
+      final analytics = ref.read(analyticsServiceProvider);
+      await analytics.trackOnboardingStepComplete(3, _stepNames[3], {'dailyTime': _selectedDailyTime});
+      await analytics.trackOnboardingComplete({
         'pain': _selectedPain,
         'goal': _selectedGoal,
         'dailyTime': _selectedDailyTime,
@@ -148,6 +167,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   setState(() {
                     _currentPage = index;
                   });
+                  // Track step view
+                  ref.read(analyticsServiceProvider).trackOnboardingStepView(index, _stepNames[index]);
                 },
                 children: [
                   _buildWelcomePage(),

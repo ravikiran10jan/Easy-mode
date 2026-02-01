@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'core/theme/app_theme.dart';
+import 'core/providers/auth_providers.dart';
 import 'features/home/screens/home_screen.dart';
 import 'features/actions/screens/actions_screen.dart';
 import 'features/scripts/screens/scripts_screen.dart';
@@ -13,11 +14,51 @@ import 'features/profile/screens/profile_screen.dart';
 final navigationIndexProvider = StateProvider<int>((ref) => 0);
 
 /// App shell with bottom navigation
-class AppShell extends ConsumerWidget {
+class AppShell extends ConsumerStatefulWidget {
   const AppShell({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AppShell> createState() => _AppShellState();
+}
+
+class _AppShellState extends ConsumerState<AppShell> with WidgetsBindingObserver {
+  static const _screenNames = ['Home', 'Actions', 'Audacity', 'Rituals', 'Progress', 'Profile'];
+  
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    // Start session and track initial screen
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final analytics = ref.read(analyticsServiceProvider);
+      analytics.startSession();
+      analytics.trackScreenView('Home');
+    });
+  }
+  
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+  
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final analytics = ref.read(analyticsServiceProvider);
+    if (state == AppLifecycleState.paused) {
+      analytics.endSession();
+    } else if (state == AppLifecycleState.resumed) {
+      analytics.startSession();
+    }
+  }
+  
+  void _onNavTap(int index) {
+    ref.read(navigationIndexProvider.notifier).state = index;
+    ref.read(analyticsServiceProvider).trackScreenView(_screenNames[index]);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final currentIndex = ref.watch(navigationIndexProvider);
 
     final screens = [
@@ -69,7 +110,7 @@ class AppShell extends ConsumerWidget {
                   activeIcon: Icons.home_rounded,
                   label: 'Home',
                   currentIndex: currentIndex,
-                  onTap: () => ref.read(navigationIndexProvider.notifier).state = 0,
+                  onTap: () => _onNavTap(0),
                 ),
                 _NavItem(
                   index: 1,
@@ -78,7 +119,7 @@ class AppShell extends ConsumerWidget {
                   label: 'Action',
                   currentIndex: currentIndex,
                   color: AppTheme.actionColor,
-                  onTap: () => ref.read(navigationIndexProvider.notifier).state = 1,
+                  onTap: () => _onNavTap(1),
                 ),
                 _NavItem(
                   index: 2,
@@ -87,7 +128,7 @@ class AppShell extends ConsumerWidget {
                   label: 'Audacity',
                   currentIndex: currentIndex,
                   color: AppTheme.audacityColor,
-                  onTap: () => ref.read(navigationIndexProvider.notifier).state = 2,
+                  onTap: () => _onNavTap(2),
                 ),
                 _NavItem(
                   index: 3,
@@ -96,7 +137,7 @@ class AppShell extends ConsumerWidget {
                   label: 'Enjoy',
                   currentIndex: currentIndex,
                   color: AppTheme.enjoyColor,
-                  onTap: () => ref.read(navigationIndexProvider.notifier).state = 3,
+                  onTap: () => _onNavTap(3),
                 ),
                 _NavItem(
                   index: 4,
@@ -104,7 +145,7 @@ class AppShell extends ConsumerWidget {
                   activeIcon: Icons.bar_chart_rounded,
                   label: 'Progress',
                   currentIndex: currentIndex,
-                  onTap: () => ref.read(navigationIndexProvider.notifier).state = 4,
+                  onTap: () => _onNavTap(4),
                 ),
                 _NavItem(
                   index: 5,
@@ -112,7 +153,7 @@ class AppShell extends ConsumerWidget {
                   activeIcon: Icons.person_rounded,
                   label: 'Profile',
                   currentIndex: currentIndex,
-                  onTap: () => ref.read(navigationIndexProvider.notifier).state = 5,
+                  onTap: () => _onNavTap(5),
                 ),
               ],
             ),

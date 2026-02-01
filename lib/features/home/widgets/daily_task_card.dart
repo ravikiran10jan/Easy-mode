@@ -40,11 +40,23 @@ class _DailyTaskCardState extends ConsumerState<DailyTaskCard> {
   void initState() {
     super.initState();
     _loadPersonalization();
+    // Track task view
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(analyticsServiceProvider).trackTaskView(widget.task.id, widget.task.type);
+    });
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    // Track abandon if timer was running but not completed
+    if (_isRunning && !_isCompleted) {
+      ref.read(analyticsServiceProvider).trackTaskAbandon(
+        widget.task.id, 
+        widget.task.type, 
+        _elapsed.inSeconds,
+      );
+    }
     super.dispose();
   }
 
@@ -83,6 +95,9 @@ class _DailyTaskCardState extends ConsumerState<DailyTaskCard> {
       _isRunning = true;
     });
     
+    // Track task start
+    ref.read(analyticsServiceProvider).trackTaskStart(widget.task.id, widget.task.type);
+    
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       setState(() {
         _elapsed += const Duration(seconds: 1);
@@ -104,6 +119,7 @@ class _DailyTaskCardState extends ConsumerState<DailyTaskCard> {
     if (user == null) return;
     
     final firestoreService = ref.read(firestoreServiceProvider);
+    final analytics = ref.read(analyticsServiceProvider);
     
     // Calculate XP
     final int xpEarned = widget.task.xpReward;
@@ -122,12 +138,13 @@ class _DailyTaskCardState extends ConsumerState<DailyTaskCard> {
     // Update user XP
     await firestoreService.updateUserXp(user.uid, xpEarned);
     
-    // Log analytics
-    await firestoreService.logAnalyticsEvent('daily_task_completed', {
-      'taskType': widget.task.type,
-      'xpEarned': xpEarned,
-      'duration': _elapsed.inSeconds,
-    });
+    // Track task completion analytics
+    await analytics.trackTaskComplete(
+      widget.task.id,
+      widget.task.type,
+      xpEarned,
+      _elapsed.inSeconds,
+    );
     
     setState(() {
       _isCompleted = true;

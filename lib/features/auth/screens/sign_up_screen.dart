@@ -25,6 +25,15 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   String? _errorMessage;
 
   @override
+  void initState() {
+    super.initState();
+    // Track screen view
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(analyticsServiceProvider).trackScreenView('SignUp');
+    });
+  }
+
+  @override
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
@@ -41,6 +50,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
       _errorMessage = null;
     });
 
+    final analytics = ref.read(analyticsServiceProvider);
+    await analytics.trackSignUpAttempt('email');
+
     try {
       final authService = ref.read(authServiceProvider);
       await authService.signUpWithEmail(
@@ -48,13 +60,16 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
         password: _passwordController.text,
         name: _nameController.text.trim(),
       );
+      await analytics.trackSignUpSuccess('email');
       // Navigation handled by auth state listener
       if (mounted) {
         Navigator.of(context).pop();
       }
     } catch (e) {
+      final errorMsg = _getErrorMessage(e);
+      await analytics.trackSignUpFailure('email', errorMsg);
       setState(() {
-        _errorMessage = _getErrorMessage(e);
+        _errorMessage = errorMsg;
       });
     } finally {
       if (mounted) {

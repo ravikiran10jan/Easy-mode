@@ -24,6 +24,10 @@ class _ScriptDetailScreenState extends ConsumerState<ScriptDetailScreen> {
   void initState() {
     super.initState();
     _templateController = TextEditingController(text: widget.script.template);
+    // Track script view
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(analyticsServiceProvider).trackScriptView(widget.script.id, widget.script.riskLevel);
+    });
   }
 
   @override
@@ -43,6 +47,7 @@ class _ScriptDetailScreenState extends ConsumerState<ScriptDetailScreen> {
 
     try {
       final firestoreService = ref.read(firestoreServiceProvider);
+      final analytics = ref.read(analyticsServiceProvider);
 
       // Calculate XP
       int xpEarned = AppConstants.xpAudacityAttempt;
@@ -63,13 +68,13 @@ class _ScriptDetailScreenState extends ConsumerState<ScriptDetailScreen> {
       // Update user XP
       await firestoreService.updateUserXp(user.uid, xpEarned);
 
-      // Log analytics
-      await firestoreService.logAnalyticsEvent('audacity_attempted', {
-        'scriptId': widget.script.id,
-        'outcome': outcome,
-        'xpEarned': xpEarned,
-        'riskLevel': widget.script.riskLevel,
-      });
+      // Track script attempt analytics
+      await analytics.trackScriptAttempt(
+        widget.script.id,
+        outcome,
+        xpEarned,
+        widget.script.riskLevel,
+      );
 
       if (mounted) {
         _showResultDialog(outcome, xpEarned);
