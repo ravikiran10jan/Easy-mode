@@ -94,7 +94,6 @@ firebase-debug.*.log
 firestore-debug.log
 ui-debug.log
 pubsub-debug.log
-**/firebase_options.dart
 
 # Cloud Functions
 functions/lib/
