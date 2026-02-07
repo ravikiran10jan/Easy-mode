@@ -851,7 +851,7 @@ If completion rate > 80%, use adjust_difficulty to increase challenge.`;
     });
 
     // Process tool calls in a loop (agentic loop)
-    let messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
+    const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
       { role: 'system', content: 'You are a planning agent that creates personalized weekly plans. Use the provided tools to structure your response.' },
       { role: 'user', content: milestonePrompt },
       response1.choices[0].message,
@@ -875,7 +875,7 @@ If completion rate > 80%, use adjust_difficulty to increase challenge.`;
         let toolResult = '';
 
         switch (fnCall.function.name) {
-          case 'create_milestone':
+          case 'create_milestone': {
             const milestone: WeeklyMilestone = {
               weekNumber: args.week_number,
               title: args.milestone_title,
@@ -888,8 +888,9 @@ If completion rate > 80%, use adjust_difficulty to increase challenge.`;
             toolResult = `Milestone ${args.week_number} created: "${args.milestone_title}"`;
             console.log(`[Planner Agent] Created milestone: ${args.milestone_title}`);
             break;
+          }
 
-          case 'create_daily_task':
+          case 'create_daily_task': {
             const task: DailyPlanTask = {
               dayOfWeek: args.day_of_week,
               title: args.task_title,
@@ -902,6 +903,7 @@ If completion rate > 80%, use adjust_difficulty to increase challenge.`;
             toolResult = `Daily task created for ${args.day_of_week}: "${args.task_title}"`;
             console.log(`[Planner Agent] Created daily task: ${args.task_title}`);
             break;
+          }
 
           case 'adjust_difficulty':
             difficultyAdjustment = {
@@ -1143,6 +1145,7 @@ export const weeklyReplanningCheck = functions.pubsub
  * COACH DECIDES - Full context smart recommendation
  * Called when user taps "Let Coach Decide" button
  * Returns detailed reasoning visible to user
+ * Includes Opik tracing and LLM-as-judge evaluations
  */
 export const coachDecides = functions.https.onCall(async (data, context) => {
   if (!context.auth) {
@@ -1153,6 +1156,15 @@ export const coachDecides = functions.https.onCall(async (data, context) => {
   }
 
   const userId = context.auth.uid;
+
+  // Create Opik trace for this AI operation
+  const trace = createTrace({
+    name: 'coach_decides',
+    userId,
+    functionName: 'coachDecides',
+    input: { userId, timestamp: new Date().toISOString() },
+    tags: ['coach-decides', 'decision-making'],
+  });
 
   try {
     // Gather comprehensive context
@@ -1203,7 +1215,12 @@ export const coachDecides = functions.https.onCall(async (data, context) => {
         'OpenAI API key not configured.'
       );
     }
-    const openai = new OpenAI({ apiKey });
+
+    // Use tracked OpenAI client for automatic span creation
+    const openai = getTrackedOpenAI(apiKey, {
+      userId,
+      feature: 'coach_decides',
+    });
 
     const systemPrompt = `You are the Easy Mode AI Coach. The user has asked you to DECIDE what they should do right now.
 This is NOT a suggestion - you are MAKING THE DECISION for them based on their complete context.
@@ -1263,6 +1280,13 @@ Respond in JSON:
   "coachMessage": "A personalized encouraging message (1-2 sentences) that feels like a coach speaking directly to them"
 }`;
 
+    // Track prompt experiment version
+    trackPromptExperiment(trace, {
+      ...PROMPT_VERSIONS.coachDecides.v1,
+      systemPrompt,
+      userPromptTemplate: contextPrompt,
+    });
+
     const response = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
@@ -1284,6 +1308,51 @@ Respond in JSON:
     // Find the selected task
     const selectedTask = topCandidates.find(t => t.id === coachDecision.decision.taskId) || topCandidates[0];
 
+    // Run LLM-as-judge evaluations
+    const rawOpenai = new OpenAI({ apiKey });
+    const evaluationScores = await runEvaluations(rawOpenai, [
+      {
+        config: EVALUATION_PROMPTS.taskRelevance,
+        variables: {
+          goal: userData.profile?.goal || 'Build confidence',
+          pain: userData.profile?.pain || 'Feeling stuck',
+          task: JSON.stringify(selectedTask),
+        },
+      },
+      {
+        config: EVALUATION_PROMPTS.decisionConfidence,
+        variables: {
+          task: JSON.stringify(selectedTask),
+          reasoning: JSON.stringify(coachDecision.reasoning),
+          context: JSON.stringify({
+            streak: userData.streak,
+            completedToday,
+            timeOfDay,
+            behaviorPattern: {
+              totalTasksCompleted: behaviorPattern.totalTasksCompleted,
+              successRateByType: behaviorPattern.successRateByType,
+            },
+          }),
+        },
+      },
+      {
+        config: EVALUATION_PROMPTS.engagementPotential,
+        variables: {
+          response: coachDecision.coachMessage,
+          context: JSON.stringify({ userData, behaviorPattern }),
+        },
+      },
+    ]);
+
+    // End trace with output and evaluation scores
+    await endTrace(trace, {
+      selectedTask,
+      coachDecision,
+      model: 'gpt-4o-mini',
+      tokensUsed: response.usage?.total_tokens,
+      candidateCount: topCandidates.length,
+    }, evaluationScores);
+
     // Log analytics
     await db.collection('analytics').add({
       event: 'coach_decides',
@@ -1291,11 +1360,16 @@ Respond in JSON:
       selectedTaskId: selectedTask.id,
       taskType: selectedTask.type,
       confidenceLevel: coachDecision.reasoning.confidenceLevel,
+      evaluationScores: evaluationScores.reduce((acc, s) => ({ ...acc, [s.name]: s.value }), {}),
       dayOfWeek,
       timeOfDay,
       completedToday,
       timestamp: admin.firestore.FieldValue.serverTimestamp(),
     });
+
+    // Flush Opik data
+    await openai.flush();
+    await flushOpik();
 
     return {
       success: true,
@@ -1321,6 +1395,13 @@ Respond in JSON:
 
   } catch (error) {
     console.error('[Coach Decides] Error:', error);
+
+    // End trace with error
+    await endTrace(trace, {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      success: false,
+    });
+    await flushOpik();
     
     // Fallback response
     return {
@@ -1802,6 +1883,241 @@ Respond in JSON:
         },
       } : null,
     };
+  }
+});
+
+// ============ EXPERIMENT COMPARISON ============
+
+interface ExperimentMetrics {
+  promptVersion: string;
+  eventType: string;
+  avgScores: { [metric: string]: number };
+  sampleCount: number;
+  scoreDistribution: { [metric: string]: { min: number; max: number; stdDev: number } };
+}
+
+interface ExperimentReport {
+  generatedAt: string;
+  dateRange: { start: string; end: string };
+  experiments: ExperimentMetrics[];
+  recommendations: string[];
+  bestPerformers: { [eventType: string]: string };
+}
+
+/**
+ * Generate Experiment Comparison Report
+ * Analyzes evaluation scores by prompt version to enable systematic improvement
+ * This demonstrates data-driven prompt iteration using Opik metrics
+ */
+export const generateExperimentReport = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError(
+      'unauthenticated',
+      'Must be authenticated to generate experiment reports.'
+    );
+  }
+
+  const { daysBack = 7, eventTypes } = data;
+
+  try {
+    // Calculate date range
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - daysBack);
+
+    // Query analytics events with evaluation scores
+    const analyticsEvents = [
+      'smart_recommendation',
+      'daily_insight_generated',
+      'coach_decides',
+    ];
+    const targetEvents = eventTypes || analyticsEvents;
+
+    const experimentData: Map<string, ExperimentMetrics> = new Map();
+
+    for (const eventType of targetEvents) {
+      const analyticsSnapshot = await db
+        .collection('analytics')
+        .where('event', '==', eventType)
+        .where('timestamp', '>=', startDate)
+        .where('timestamp', '<=', endDate)
+        .get();
+
+      if (analyticsSnapshot.empty) continue;
+
+      // Group by prompt version (extracted from metadata or default to v1)
+      const versionScores: Map<string, Array<{ [metric: string]: number }>> = new Map();
+
+      analyticsSnapshot.forEach((doc) => {
+        const data = doc.data();
+        const scores = data.evaluationScores;
+        
+        if (!scores || typeof scores !== 'object') return;
+
+        // Use prompt version from data or default
+        const version = data.promptVersion || 'v1';
+        const key = `${eventType}:${version}`;
+
+        if (!versionScores.has(key)) {
+          versionScores.set(key, []);
+        }
+        versionScores.get(key)!.push(scores);
+      });
+
+      // Calculate metrics for each version
+      for (const [key, scores] of versionScores) {
+        const [event, version] = key.split(':');
+        const metrics: ExperimentMetrics = {
+          promptVersion: version,
+          eventType: event,
+          avgScores: {},
+          sampleCount: scores.length,
+          scoreDistribution: {},
+        };
+
+        // Get all unique score metrics
+        const allMetrics = new Set<string>();
+        scores.forEach((s) => Object.keys(s).forEach((m) => allMetrics.add(m)));
+
+        // Calculate average and distribution for each metric
+        for (const metric of allMetrics) {
+          const values = scores
+            .map((s) => s[metric])
+            .filter((v) => typeof v === 'number' && !isNaN(v));
+
+          if (values.length === 0) continue;
+
+          const sum = values.reduce((a, b) => a + b, 0);
+          const avg = sum / values.length;
+          const min = Math.min(...values);
+          const max = Math.max(...values);
+          
+          // Calculate standard deviation
+          const squaredDiffs = values.map((v) => Math.pow(v - avg, 2));
+          const avgSquaredDiff = squaredDiffs.reduce((a, b) => a + b, 0) / values.length;
+          const stdDev = Math.sqrt(avgSquaredDiff);
+
+          metrics.avgScores[metric] = Math.round(avg * 100) / 100;
+          metrics.scoreDistribution[metric] = {
+            min,
+            max,
+            stdDev: Math.round(stdDev * 100) / 100,
+          };
+        }
+
+        experimentData.set(key, metrics);
+      }
+    }
+
+    // Generate recommendations based on metrics
+    const recommendations: string[] = [];
+    const bestPerformers: { [eventType: string]: string } = {};
+
+    // Group by event type to find best performers
+    const byEventType: Map<string, ExperimentMetrics[]> = new Map();
+    for (const metrics of experimentData.values()) {
+      if (!byEventType.has(metrics.eventType)) {
+        byEventType.set(metrics.eventType, []);
+      }
+      byEventType.get(metrics.eventType)!.push(metrics);
+    }
+
+    for (const [eventType, versions] of byEventType) {
+      if (versions.length === 0) continue;
+
+      // Calculate composite score (average of all metrics)
+      const versionComposites = versions.map((v) => {
+        const avgValues = Object.values(v.avgScores);
+        const composite = avgValues.length > 0
+          ? avgValues.reduce((a, b) => a + b, 0) / avgValues.length
+          : 0;
+        return { version: v.promptVersion, composite, metrics: v };
+      });
+
+      // Sort by composite score
+      versionComposites.sort((a, b) => b.composite - a.composite);
+      
+      if (versionComposites.length > 0) {
+        bestPerformers[eventType] = versionComposites[0].version;
+        
+        // Generate specific recommendations
+        const best = versionComposites[0];
+        if (best.composite < 3.5) {
+          recommendations.push(
+            `${eventType}: Consider revising prompts - average score ${best.composite.toFixed(2)}/5 indicates room for improvement`
+          );
+        }
+
+        // Check for high variance metrics
+        for (const [metric, dist] of Object.entries(best.metrics.scoreDistribution)) {
+          if (dist.stdDev > 1.0) {
+            recommendations.push(
+              `${eventType}: High variance in ${metric} (stdDev: ${dist.stdDev}) - consider making prompt more consistent`
+            );
+          }
+        }
+
+        // Compare versions if multiple exist
+        if (versionComposites.length > 1) {
+          const diff = versionComposites[0].composite - versionComposites[1].composite;
+          if (diff > 0.5) {
+            recommendations.push(
+              `${eventType}: Version ${versionComposites[0].version} significantly outperforms ${versionComposites[1].version} (+${diff.toFixed(2)} avg score)`
+            );
+          }
+        }
+      }
+    }
+
+    // Add general recommendations if no specific ones
+    if (recommendations.length === 0) {
+      recommendations.push('All prompt versions performing within acceptable ranges');
+      recommendations.push('Consider A/B testing new prompt variations to find improvements');
+    }
+
+    const report: ExperimentReport = {
+      generatedAt: new Date().toISOString(),
+      dateRange: {
+        start: startDate.toISOString(),
+        end: endDate.toISOString(),
+      },
+      experiments: Array.from(experimentData.values()),
+      recommendations,
+      bestPerformers,
+    };
+
+    // Store report for historical tracking
+    await db.collection('experimentReports').add({
+      ...report,
+      generatedBy: context.auth.uid,
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    // Log analytics event
+    await db.collection('analytics').add({
+      event: 'experiment_report_generated',
+      userId: context.auth.uid,
+      daysBack,
+      experimentCount: experimentData.size,
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    return {
+      success: true,
+      report,
+      summary: {
+        totalExperiments: experimentData.size,
+        dateRange: `${daysBack} days`,
+        recommendationCount: recommendations.length,
+      },
+    };
+
+  } catch (error) {
+    console.error('[Experiment Report] Error:', error);
+    throw new functions.https.HttpsError(
+      'internal',
+      `Failed to generate experiment report: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
   }
 });
 

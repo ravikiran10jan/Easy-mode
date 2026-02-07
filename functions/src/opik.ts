@@ -201,6 +201,24 @@ User Context: {{context}}
 Respond with only a number 1-5.`,
     scoreRange: { min: 1, max: 5 },
   },
+
+  decisionConfidence: {
+    name: 'decision_confidence',
+    prompt: `Evaluate the quality and confidence of this AI coaching decision.
+Score from 1-5 where:
+1 = Poor decision with weak or illogical reasoning
+2 = Questionable decision, reasoning has gaps
+3 = Acceptable decision with adequate reasoning
+4 = Good decision with clear, well-supported reasoning
+5 = Excellent decision with compelling, personalized reasoning
+
+Task Selected: {{task}}
+Decision Reasoning: {{reasoning}}
+User Context: {{context}}
+
+Respond with only a number 1-5.`,
+    scoreRange: { min: 1, max: 5 },
+  },
 };
 
 /**
@@ -340,20 +358,47 @@ export const PROMPT_VERSIONS = {
       description: 'Initial smart task recommendation prompt',
     },
   },
+  coachDecides: {
+    v1: {
+      name: 'coach_decides_experiment',
+      version: 'v1',
+      description: 'Initial coach decides recommendation prompt',
+    },
+  },
+  weeklyPlan: {
+    v1: {
+      name: 'weekly_plan_experiment',
+      version: 'v1',
+      description: 'Initial weekly plan generation prompt',
+    },
+  },
 };
 
 /**
  * Flush all pending Opik data
  * Call this before Cloud Function terminates
+ * Includes timeout protection to prevent hanging
  */
 export async function flushOpik(): Promise<void> {
   const client = getOpikClient();
   if (!client) return;
 
-  await Promise.all([
-    client.traceBatchQueue.flush(),
-    client.spanBatchQueue.flush(),
-    client.traceFeedbackScoresBatchQueue.flush(),
-    client.spanFeedbackScoresBatchQueue.flush(),
-  ]);
+  const timeout = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error('Opik flush timeout after 5000ms')), 5000)
+  );
+
+  try {
+    await Promise.race([
+      Promise.all([
+        client.traceBatchQueue.flush(),
+        client.spanBatchQueue.flush(),
+        client.traceFeedbackScoresBatchQueue.flush(),
+        client.spanFeedbackScoresBatchQueue.flush(),
+      ]),
+      timeout,
+    ]);
+  } catch (error) {
+    // Log but don't throw - flush failures shouldn't break the function
+    console.error('Opik flush failed (non-fatal):', error instanceof Error ? error.message : error);
+  }
 }

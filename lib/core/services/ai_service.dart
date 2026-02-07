@@ -230,11 +230,90 @@ class AiService {
         Map<String, dynamic>.from(result.data),
       );
     } catch (e) {
-      return CoachDecidesResponse(
-        success: false,
-        error: e.toString(),
-      );
+      // Return a fallback response with a default task when cloud function is unavailable
+      return _generateFallbackCoachDecision();
     }
+  }
+
+  /// Generate a fallback coach decision when cloud function is unavailable
+  CoachDecidesResponse _generateFallbackCoachDecision() {
+    final hour = DateTime.now().hour;
+    final timeOfDay = hour < 12 ? 'morning' : (hour < 17 ? 'afternoon' : 'evening');
+    
+    // Select task based on time of day
+    final TaskModel task;
+    final String whyNow;
+    final String expectedOutcome;
+    
+    if (hour < 10) {
+      task = TaskModel(
+        id: 'fallback_morning',
+        title: 'Start with a mindful moment',
+        description: 'Take 5 minutes to breathe deeply and set your intention for the day. What one thing do you want to accomplish?',
+        type: 'action',
+        estimatedMinutes: 5,
+        xpReward: 50,
+        category: 'mindfulness',
+      );
+      whyNow = 'Morning is the perfect time to set your intention before the day gets busy.';
+      expectedOutcome = 'You\'ll feel centered and focused for the day ahead.';
+    } else if (hour < 14) {
+      task = TaskModel(
+        id: 'fallback_midday',
+        title: 'Take one bold step',
+        description: 'Identify one thing you\'ve been putting off and take the first small action toward it right now.',
+        type: 'audacity',
+        estimatedMinutes: 10,
+        xpReward: 100,
+        category: 'productivity',
+        riskLevel: 'low',
+      );
+      whyNow = 'Your energy is high right now - perfect for tackling something you\'ve been avoiding.';
+      expectedOutcome = 'You\'ll break through procrastination and build momentum.';
+    } else if (hour < 18) {
+      task = TaskModel(
+        id: 'fallback_afternoon',
+        title: 'Celebrate a small win',
+        description: 'Think of one thing you accomplished today, no matter how small. Acknowledge it and give yourself credit.',
+        type: 'enjoy',
+        estimatedMinutes: 5,
+        xpReward: 50,
+        category: 'reflection',
+      );
+      whyNow = 'Afternoon is a great time to recognize progress and recharge your motivation.';
+      expectedOutcome = 'You\'ll feel more positive and motivated to continue.';
+    } else {
+      task = TaskModel(
+        id: 'fallback_evening',
+        title: 'Reflect on today\'s growth',
+        description: 'Take a moment to write down one thing you learned or one way you grew today.',
+        type: 'action',
+        estimatedMinutes: 5,
+        xpReward: 50,
+        category: 'reflection',
+      );
+      whyNow = 'Evening reflection helps consolidate your growth and prepares you for tomorrow.';
+      expectedOutcome = 'You\'ll sleep better knowing you made progress today.';
+    }
+
+    return CoachDecidesResponse(
+      success: true,
+      task: task,
+      reasoning: CoachDecisionReasoning(
+        headline: 'Here\'s what I recommend right now',
+        whyNow: whyNow,
+        expectedOutcome: expectedOutcome,
+        confidenceLevel: 'HIGH',
+        alternativeConsidered: 'This recommendation is based on the time of day and general best practices.',
+      ),
+      coachMessage: 'I\'ve picked something perfect for this $timeOfDay. Trust the process!',
+      context: CoachDecisionContext(
+        streak: 0,
+        completedToday: 0,
+        timeOfDay: timeOfDay,
+        energyAlignment: 'balanced',
+      ),
+    );
   }
 
   /// Generate AI weekly summary for momentum journal
