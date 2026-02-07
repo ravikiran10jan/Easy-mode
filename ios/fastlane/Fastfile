@@ -1,0 +1,87 @@
+default_platform(:ios)
+
+platform :ios do
+  desc "Build and upload to TestFlight"
+  lane :beta do
+    # Setup App Store Connect API Key from environment variables
+    if ENV["APP_STORE_CONNECT_API_KEY_CONTENT"]
+      app_store_connect_api_key(
+        key_id: ENV["APP_STORE_CONNECT_API_KEY_ID"],
+        issuer_id: ENV["APP_STORE_CONNECT_ISSUER_ID"],
+        key_content: ENV["APP_STORE_CONNECT_API_KEY_CONTENT"],
+        is_key_content_base64: false
+      )
+    end
+
+    # Ensure we're in the right directory for Flutter commands
+    Dir.chdir("..") do
+      # Clean Flutter build
+      sh("flutter clean")
+      
+      # Get Flutter dependencies
+      sh("flutter pub get")
+      
+      # Build iOS release
+      sh("flutter build ios --release --no-codesign")
+    end
+
+    # Setup automatic code signing
+    team_id = ENV["TEAM_ID"] || "8PQ2BKTL9B"
+    update_code_signing_settings(
+      use_automatic_signing: true,
+      path: "Runner.xcodeproj",
+      team_id: team_id
+    )
+
+    # Build the app
+    build_app(
+      workspace: "Runner.xcworkspace",
+      scheme: "Runner",
+      export_method: "app-store",
+      output_directory: "./build",
+      output_name: "EasyMode.ipa",
+      export_options: {
+        provisioningProfiles: {
+          "com.easymode.app" => "match AppStore com.easymode.app"
+        }
+      }
+    )
+
+    # Upload to TestFlight
+    upload_to_testflight(
+      skip_waiting_for_build_processing: true,
+      skip_submission: true
+    )
+  end
+
+  desc "Build only (no upload)"
+  lane :build do
+    Dir.chdir("..") do
+      sh("flutter clean")
+      sh("flutter pub get")
+      sh("flutter build ios --release --no-codesign")
+    end
+
+    build_app(
+      workspace: "Runner.xcworkspace",
+      scheme: "Runner",
+      export_method: "app-store",
+      output_directory: "./build",
+      output_name: "EasyMode.ipa"
+    )
+  end
+
+  desc "Setup certificates and provisioning profiles"
+  lane :certificates do
+    if ENV["APP_STORE_CONNECT_API_KEY_CONTENT"]
+      app_store_connect_api_key(
+        key_id: ENV["APP_STORE_CONNECT_API_KEY_ID"],
+        issuer_id: ENV["APP_STORE_CONNECT_ISSUER_ID"],
+        key_content: ENV["APP_STORE_CONNECT_API_KEY_CONTENT"],
+        is_key_content_base64: false
+      )
+    end
+
+    match(type: "appstore", readonly: true)
+  end
+end

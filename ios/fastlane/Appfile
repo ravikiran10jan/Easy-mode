@@ -1,0 +1,11 @@
+# App Identifier (Bundle ID)
+app_identifier("com.easymode.app")
+
+# Apple ID (email)
+apple_id("ravikiranmentorites@gmail.com")
+
+# App Store Connect API Key - loaded from environment variables
+# Set these in CI/CD secrets:
+# - APP_STORE_CONNECT_API_KEY_ID
+# - APP_STORE_CONNECT_ISSUER_ID  
+# - APP_STORE_CONNECT_API_KEY_CONTENT
