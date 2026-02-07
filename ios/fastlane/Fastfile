@@ -13,12 +13,11 @@ platform :ios do
       )
     end
 
-    # Setup automatic code signing BEFORE building
-    team_id = ENV["TEAM_ID"] || "8PQ2BKTL9B"
-    update_code_signing_settings(
-      use_automatic_signing: true,
-      path: "Runner.xcodeproj",
-      team_id: team_id
+    # Fetch certificates and provisioning profiles using Match
+    match(
+      type: "appstore",
+      readonly: is_ci,
+      git_basic_authorization: ENV["MATCH_GIT_BASIC_AUTHORIZATION"]
     )
 
     # Ensure we're in the right directory for Flutter commands
@@ -29,17 +28,23 @@ platform :ios do
       # Get Flutter dependencies
       sh("flutter pub get")
       
-      # Build iOS release (with codesigning since team is now set)
-      sh("flutter build ios --release")
+      # Build iOS release without codesign (Fastlane will handle signing)
+      sh("flutter build ios --release --no-codesign")
     end
 
-    # Build the IPA
+    # Build the IPA with proper signing
     build_app(
       workspace: "Runner.xcworkspace",
       scheme: "Runner",
       export_method: "app-store",
       output_directory: "./build",
-      output_name: "EasyMode.ipa"
+      output_name: "EasyMode.ipa",
+      export_options: {
+        signingStyle: "manual",
+        provisioningProfiles: {
+          "com.easymode.app" => "match AppStore com.easymode.app"
+        }
+      }
     )
 
     # Upload to TestFlight
@@ -51,6 +56,9 @@ platform :ios do
 
   desc "Build only (no upload)"
   lane :build do
+    # Fetch certificates
+    match(type: "appstore", readonly: true)
+
     Dir.chdir("..") do
       sh("flutter clean")
       sh("flutter pub get")
@@ -77,6 +85,20 @@ platform :ios do
       )
     end
 
-    match(type: "appstore", readonly: true)
+    match(type: "appstore", readonly: false)
+  end
+
+  desc "Generate new certificates (run locally, not in CI)"
+  lane :setup_certs do
+    if ENV["APP_STORE_CONNECT_API_KEY_CONTENT"]
+      app_store_connect_api_key(
+        key_id: ENV["APP_STORE_CONNECT_API_KEY_ID"],
+        issuer_id: ENV["APP_STORE_CONNECT_ISSUER_ID"],
+        key_content: ENV["APP_STORE_CONNECT_API_KEY_CONTENT"],
+        is_key_content_base64: false
+      )
+    end
+
+    match(type: "appstore", readonly: false, force_for_new_devices: true)
   end
 end

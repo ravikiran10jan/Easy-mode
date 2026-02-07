@@ -1,0 +1,11 @@
+git_url("https://github.com/ravikiran10jan/Easy-mode-certificates")
+
+storage_mode("git")
+
+type("appstore") # The default type, can be: appstore, adhoc, enterprise or development
+
+app_identifier(["com.easymode.app"])
+username("ravikiranmentorites@gmail.com")
+
+# For CI/CD - use API key instead of password
+# api_key_path("path/to/api_key.json")
