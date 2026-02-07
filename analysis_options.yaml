@@ -5,6 +5,7 @@ analyzer:
     - "**/*.g.dart"
     - "**/*.freezed.dart"
     - "lib/firebase_options.dart"
+    - "integration_test/**"
   errors:
     invalid_annotation_target: ignore
   language:

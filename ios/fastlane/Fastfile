@@ -13,6 +13,14 @@ platform :ios do
       )
     end
 
+    # Setup automatic code signing BEFORE building
+    team_id = ENV["TEAM_ID"] || "8PQ2BKTL9B"
+    update_code_signing_settings(
+      use_automatic_signing: true,
+      path: "Runner.xcodeproj",
+      team_id: team_id
+    )
+
     # Ensure we're in the right directory for Flutter commands
     Dir.chdir("..") do
       # Clean Flutter build
@@ -21,30 +29,17 @@ platform :ios do
       # Get Flutter dependencies
       sh("flutter pub get")
       
-      # Build iOS release
-      sh("flutter build ios --release --no-codesign")
+      # Build iOS release (with codesigning since team is now set)
+      sh("flutter build ios --release")
     end
 
-    # Setup automatic code signing
-    team_id = ENV["TEAM_ID"] || "8PQ2BKTL9B"
-    update_code_signing_settings(
-      use_automatic_signing: true,
-      path: "Runner.xcodeproj",
-      team_id: team_id
-    )
-
-    # Build the app
+    # Build the IPA
     build_app(
       workspace: "Runner.xcworkspace",
       scheme: "Runner",
       export_method: "app-store",
       output_directory: "./build",
-      output_name: "EasyMode.ipa",
-      export_options: {
-        provisioningProfiles: {
-          "com.easymode.app" => "match AppStore com.easymode.app"
-        }
-      }
+      output_name: "EasyMode.ipa"
     )
 
     # Upload to TestFlight
