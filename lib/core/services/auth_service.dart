@@ -74,53 +74,71 @@ class AuthService {
 
   /// Sign in with Google
   Future<UserCredential?> signInWithGoogle() async {
-    // Google Sign-In is not fully configured for web without OAuth client ID
-    // For MVP, show error message on web
+    // Google Sign-In requires OAuth client configuration:
+    // - Web: OAuth client ID in index.html meta tag
+    // - iOS: CLIENT_ID in GoogleService-Info.plist + URL schemes in Info.plist
+    // - Android: SHA-1 fingerprint in Firebase Console
     if (kIsWeb) {
       throw UnsupportedError(
         'Google Sign-In requires OAuth configuration. Use email/password for now.',
       );
     }
 
-    // Trigger the authentication flow
-    final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+    try {
+      // Trigger the authentication flow
+      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
 
-    if (googleUser == null) {
-      return null; // User cancelled the sign-in
-    }
-
-    // Obtain the auth details from the request
-    final GoogleSignInAuthentication googleAuth =
-        await googleUser.authentication;
-
-    // Create a new credential
-    final credential = GoogleAuthProvider.credential(
-      accessToken: googleAuth.accessToken,
-      idToken: googleAuth.idToken,
-    );
-
-    // Sign in to Firebase with the Google credential
-    final userCredential = await _auth.signInWithCredential(credential);
-
-    if (userCredential.user != null) {
-      // Check if user exists in Firestore
-      final existingUser =
-          await _firestoreService.getUser(userCredential.user!.uid);
-
-      if (existingUser == null) {
-        // Create new user document
-        final user = UserModel(
-          uid: userCredential.user!.uid,
-          name: userCredential.user!.displayName,
-          email: userCredential.user!.email,
-          photoUrl: userCredential.user!.photoURL,
-          createdAt: DateTime.now(),
-        );
-        await _firestoreService.createUser(user);
+      if (googleUser == null) {
+        return null; // User cancelled the sign-in
       }
-    }
 
-    return userCredential;
+      // Obtain the auth details from the request
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
+      // Create a new credential
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      // Sign in to Firebase with the Google credential
+      final userCredential = await _auth.signInWithCredential(credential);
+
+      if (userCredential.user != null) {
+        // Check if user exists in Firestore
+        final existingUser =
+            await _firestoreService.getUser(userCredential.user!.uid);
+
+        if (existingUser == null) {
+          // Create new user document
+          final user = UserModel(
+            uid: userCredential.user!.uid,
+            name: userCredential.user!.displayName,
+            email: userCredential.user!.email,
+            photoUrl: userCredential.user!.photoURL,
+            createdAt: DateTime.now(),
+          );
+          await _firestoreService.createUser(user);
+        }
+      }
+
+      return userCredential;
+    } catch (e) {
+      // Handle Google Sign-In configuration errors gracefully
+      final errorStr = e.toString().toLowerCase();
+      if (errorStr.contains('platformexception') ||
+          errorStr.contains('missing') ||
+          errorStr.contains('configuration') ||
+          errorStr.contains('client_id') ||
+          errorStr.contains('canceled') ||
+          errorStr.contains('network_error')) {
+        throw Exception(
+          'Google Sign-In is not available. Please use email/password to sign in.',
+        );
+      }
+      rethrow;
+    }
   }
 
   /// Send password reset email
