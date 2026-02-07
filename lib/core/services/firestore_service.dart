@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/user_model.dart';
+import '../models/momentum_model.dart';
 import '../constants/app_constants.dart';
 
 /// Service for Firestore database operations
@@ -247,5 +248,120 @@ class FirestoreService {
       'timestamp': DateTime.now().toIso8601String(),
       'userId': currentUserId,
     });
+  }
+
+  // ============ MOMENTUM OPERATIONS ============
+
+  /// Get current week's momentum data
+  Future<WeeklyMomentum?> getCurrentWeekMomentum(String uid) async {
+    final weekStart = _getWeekStart(DateTime.now());
+    final weekEnd = _getWeekEnd(DateTime.now());
+
+    final snapshot = await _firestore
+        .collection(AppConstants.usersCollection)
+        .doc(uid)
+        .collection(AppConstants.momentumCollection)
+        .where('weekStart', isEqualTo: weekStart.toIso8601String())
+        .limit(1)
+        .get();
+
+    if (snapshot.docs.isEmpty) {
+      // Create new momentum record for this week
+      return _createWeekMomentum(uid, weekStart, weekEnd);
+    }
+
+    final doc = snapshot.docs.first;
+    return WeeklyMomentum.fromMap(doc.data(), doc.id);
+  }
+
+  /// Create a new weekly momentum record
+  Future<WeeklyMomentum> _createWeekMomentum(
+    String uid,
+    DateTime weekStart,
+    DateTime weekEnd,
+  ) async {
+    // Get user's focus areas for theme generation
+    final user = await getUser(uid);
+    final focusAreas = user?.profile?.focusAreas ?? [];
+    final weekOfYear = _getWeekOfYear(weekStart);
+    final theme = WeeklyThemes.getThemeForWeek(focusAreas, weekOfYear);
+
+    final momentum = WeeklyMomentum(
+      id: '',
+      userId: uid,
+      weekStart: weekStart,
+      weekEnd: weekEnd,
+      weeklyTheme: theme,
+      streakDays: user?.streak ?? 0,
+    );
+
+    final docRef = await _firestore
+        .collection(AppConstants.usersCollection)
+        .doc(uid)
+        .collection(AppConstants.momentumCollection)
+        .add(momentum.toMap());
+
+    return momentum.copyWith(id: docRef.id);
+  }
+
+  /// Update momentum data
+  Future<void> updateMomentum(WeeklyMomentum momentum) async {
+    await _firestore
+        .collection(AppConstants.usersCollection)
+        .doc(momentum.userId)
+        .collection(AppConstants.momentumCollection)
+        .doc(momentum.id)
+        .update(momentum.toMap());
+  }
+
+  /// Get momentum history for the last N weeks
+  Future<List<WeeklyMomentum>> getMomentumHistory(String uid, {int weeks = 4}) async {
+    final now = DateTime.now();
+    final startDate = now.subtract(Duration(days: weeks * 7));
+
+    final snapshot = await _firestore
+        .collection(AppConstants.usersCollection)
+        .doc(uid)
+        .collection(AppConstants.momentumCollection)
+        .where('weekStart', isGreaterThanOrEqualTo: startDate.toIso8601String())
+        .orderBy('weekStart', descending: true)
+        .limit(weeks)
+        .get();
+
+    return snapshot.docs
+        .map((doc) => WeeklyMomentum.fromMap(doc.data(), doc.id))
+        .toList();
+  }
+
+  /// Save AI weekly summary to momentum record
+  Future<void> saveMomentumSummary(String uid, String momentumId, String summary) async {
+    await _firestore
+        .collection(AppConstants.usersCollection)
+        .doc(uid)
+        .collection(AppConstants.momentumCollection)
+        .doc(momentumId)
+        .update({
+      'aiSummary': summary,
+      'summaryGeneratedAt': DateTime.now().toIso8601String(),
+    });
+  }
+
+  /// Helper to get the start of the week (Monday)
+  DateTime _getWeekStart(DateTime date) {
+    final weekday = date.weekday;
+    return DateTime(date.year, date.month, date.day - weekday + 1);
+  }
+
+  /// Helper to get the end of the week (Sunday)
+  DateTime _getWeekEnd(DateTime date) {
+    final weekStart = _getWeekStart(date);
+    return weekStart.add(const Duration(days: 6, hours: 23, minutes: 59, seconds: 59));
+  }
+
+  /// Helper to get week of year
+  int _getWeekOfYear(DateTime date) {
+    final firstDayOfYear = DateTime(date.year, 1, 1);
+    final daysDifference = date.difference(firstDayOfYear).inDays;
+    return (daysDifference / 7).ceil() + 1;
   }
 }

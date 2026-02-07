@@ -4,6 +4,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/providers/auth_providers.dart';
 import '../providers/progress_provider.dart';
+import '../widgets/momentum_tracker_card.dart';
 
 /// Progress screen showing XP, badges, and stats
 class ProgressScreen extends ConsumerWidget {
@@ -271,6 +272,14 @@ class ProgressScreen extends ConsumerWidget {
                       ).animate()
                         .fadeIn(delay: 200.ms, duration: 400.ms)
                         .slideX(begin: -0.1, end: 0),
+
+                      const SizedBox(height: AppTheme.spacingLg),
+
+                      // Momentum Tracker - "Your Momentum Journal"
+                      const MomentumTrackerCard()
+                        .animate()
+                        .fadeIn(delay: 300.ms, duration: 500.ms)
+                        .slideY(begin: 0.1, end: 0),
 
                       const SizedBox(height: AppTheme.spacingLg),
 

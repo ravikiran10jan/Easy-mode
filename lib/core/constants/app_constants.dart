@@ -39,6 +39,7 @@ class AppConstants {
   static const String userActionsCollection = 'userActions';
   static const String badgesCollection = 'badges';
   static const String analyticsCollection = 'analytics';
+  static const String momentumCollection = 'momentum';
 
   // Shared Preferences Keys
   static const String prefOnboardingComplete = 'onboarding_complete';

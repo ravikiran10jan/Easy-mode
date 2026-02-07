@@ -97,16 +97,48 @@ class UserModel {
   }
 }
 
+/// Aspiration types for "What does Easy Mode feel like?"
+enum EasyModeAspiration {
+  speakUp('speak_up', 'I speak up for what I want'),
+  takeAction('take_action', 'I take action without overthinking'),
+  findJoy('find_joy', 'I find joy in ordinary moments'),
+  createRegularly('create_regularly', 'I write/create regularly'),
+  moveBody('move_body', 'I move my body with ease'),
+  manageTime('manage_time', 'I manage my time without stress');
+
+  final String key;
+  final String label;
+  const EasyModeAspiration(this.key, this.label);
+
+  static EasyModeAspiration? fromKey(String key) {
+    try {
+      return EasyModeAspiration.values.firstWhere((e) => e.key == key);
+    } catch (_) {
+      return null;
+    }
+  }
+}
+
 /// User profile from onboarding
 class UserProfile {
+  // Legacy fields (for backward compatibility)
   final String pain;
   final String goal;
+  
+  // New aspiration-based fields
+  final List<String> focusAreas; // Keys from EasyModeAspiration
+  final String? intent; // Optional resolution text
+  final bool hasResolution; // Whether user entered via resolution path
+  
   final int dailyTimeMinutes;
   final DateTime createdAt;
 
   UserProfile({
-    required this.pain,
-    required this.goal,
+    this.pain = '',
+    this.goal = '',
+    this.focusAreas = const [],
+    this.intent,
+    this.hasResolution = false,
     required this.dailyTimeMinutes,
     required this.createdAt,
   });
@@ -114,6 +146,12 @@ class UserProfile {
   factory UserProfile.fromMap(Map<String, dynamic> map) => UserProfile(
       pain: map['pain'] as String? ?? '',
       goal: map['goal'] as String? ?? '',
+      focusAreas: (map['focusAreas'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
+      intent: map['intent'] as String?,
+      hasResolution: map['hasResolution'] as bool? ?? false,
       dailyTimeMinutes: map['dailyTimeMinutes'] as int? ?? 10,
       createdAt: _parseDateTime(map['createdAt']) ?? DateTime.now(),
     );
@@ -121,7 +159,37 @@ class UserProfile {
   Map<String, dynamic> toMap() => {
       'pain': pain,
       'goal': goal,
+      'focusAreas': focusAreas,
+      'intent': intent,
+      'hasResolution': hasResolution,
       'dailyTimeMinutes': dailyTimeMinutes,
       'createdAt': createdAt.toIso8601String(),
     };
+
+  /// Get the primary focus area for AI recommendations
+  String? get primaryFocusArea => focusAreas.isNotEmpty ? focusAreas.first : null;
+
+  /// Map focus areas to internal tracks for backend/judges
+  List<String> get mappedTracks {
+    final tracks = <String>{};
+    for (final area in focusAreas) {
+      switch (area) {
+        case 'speak_up':
+        case 'take_action':
+          tracks.add('personal_growth');
+          break;
+        case 'find_joy':
+        case 'move_body':
+          tracks.add('wellness');
+          break;
+        case 'create_regularly':
+          tracks.add('creative_expression');
+          break;
+        case 'manage_time':
+          tracks.add('productivity');
+          break;
+      }
+    }
+    return tracks.toList();
+  }
 }

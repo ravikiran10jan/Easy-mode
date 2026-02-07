@@ -158,3 +158,74 @@ final todayTaskCompletedProvider = FutureProvider<bool>((ref) async {
   
   return tasks.any((t) => t['completed'] == true);
 });
+
+// ============ AGENTIC COACH DECIDES PROVIDERS ============
+
+/// State for Coach Decides feature
+class CoachDecidesState {
+  final bool isLoading;
+  final CoachDecidesResponse? response;
+  final String? error;
+
+  const CoachDecidesState({
+    this.isLoading = false,
+    this.response,
+    this.error,
+  });
+
+  CoachDecidesState copyWith({
+    bool? isLoading,
+    CoachDecidesResponse? response,
+    String? error,
+  }) => CoachDecidesState(
+        isLoading: isLoading ?? this.isLoading,
+        response: response ?? this.response,
+        error: error,
+      );
+}
+
+/// Provider for Coach Decides state
+final coachDecidesStateProvider =
+    StateNotifierProvider<CoachDecidesNotifier, CoachDecidesState>(
+  (ref) => CoachDecidesNotifier(ref),
+);
+
+class CoachDecidesNotifier extends StateNotifier<CoachDecidesState> {
+  final Ref _ref;
+
+  CoachDecidesNotifier(this._ref) : super(const CoachDecidesState());
+
+  /// Call the Coach Decides agent
+  Future<void> letCoachDecide() async {
+    state = state.copyWith(isLoading: true, error: null);
+
+    try {
+      final aiService = _ref.read(aiServiceProvider);
+      final response = await aiService.coachDecides();
+
+      state = state.copyWith(
+        isLoading: false,
+        response: response,
+        error: response.success ? null : response.error,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString(),
+      );
+    }
+  }
+
+  void reset() {
+    state = const CoachDecidesState();
+  }
+}
+
+/// Provider for weekly plan generation
+final weeklyPlanProvider = FutureProvider.family<WeeklyPlanResponse, int>(
+  (ref, weekNumber) async {
+    final aiService = ref.watch(aiServiceProvider);
+    return aiService.generateWeeklyPlan(weekNumber: weekNumber);
+  },
+);
+
