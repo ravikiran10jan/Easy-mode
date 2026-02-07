@@ -20,6 +20,17 @@ platform :ios do
       git_basic_authorization: ENV["MATCH_GIT_BASIC_AUTHORIZATION"]
     )
 
+    # Configure Xcode project with signing settings from Match
+    # This is required because xcodebuild archive needs DEVELOPMENT_TEAM set
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      path: "Runner.xcodeproj",
+      team_id: ENV["TEAM_ID"],
+      bundle_identifier: "com.easymode.app",
+      profile_name: "match AppStore com.easymode.app",
+      code_sign_identity: "Apple Distribution"
+    )
+
     # Ensure we're in the right directory for Flutter commands
     Dir.chdir("..") do
       # Clean Flutter build
@@ -39,9 +50,10 @@ platform :ios do
       export_method: "app-store",
       output_directory: "./build",
       output_name: "EasyMode.ipa",
+      xcargs: "DEVELOPMENT_TEAM='#{ENV["TEAM_ID"]}' CODE_SIGN_IDENTITY='Apple Distribution'",
       export_options: {
         signingStyle: "manual",
-      teamID: ENV["TEAM_ID"],
+        teamID: ENV["TEAM_ID"],
         provisioningProfiles: {
           "com.easymode.app" => "match AppStore com.easymode.app"
         }
