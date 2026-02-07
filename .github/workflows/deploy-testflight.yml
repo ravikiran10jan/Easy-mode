@@ -11,6 +11,7 @@ jobs:
   deploy-ios:
     name: Deploy iOS to TestFlight
     runs-on: macos-latest
+    timeout-minutes: 45
     defaults:
       run:
         working-directory: ios
@@ -49,6 +50,32 @@ jobs:
         with:
           xcode-version: latest-stable
 
+      - name: Setup Keychain for Code Signing
+        run: |
+          # Create a temporary keychain for CI
+          KEYCHAIN_NAME="build.keychain"
+          KEYCHAIN_PASSWORD="actions"
+          
+          # Delete existing keychain if present
+          security delete-keychain "$KEYCHAIN_NAME" 2>/dev/null || true
+          
+          # Create new keychain
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_NAME"
+          
+          # Set as default and add to search list
+          security default-keychain -s "$KEYCHAIN_NAME"
+          security list-keychains -d user -s "$KEYCHAIN_NAME" $(security list-keychains -d user | tr -d '"')
+          
+          # Unlock keychain
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_NAME"
+          
+          # Prevent keychain from auto-locking
+          security set-keychain-settings -t 3600 -u "$KEYCHAIN_NAME"
+          
+          # Export for Fastlane Match
+          echo "MATCH_KEYCHAIN_NAME=$KEYCHAIN_NAME" >> $GITHUB_ENV
+          echo "MATCH_KEYCHAIN_PASSWORD=$KEYCHAIN_PASSWORD" >> $GITHUB_ENV
+
       - name: Build and Deploy to TestFlight
         run: bundle exec fastlane beta
         env:
@@ -58,3 +85,8 @@ jobs:
           TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
           MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
+
+      - name: Cleanup Keychain
+        if: always()
+        run: |
+          security delete-keychain "build.keychain" 2>/dev/null || true
