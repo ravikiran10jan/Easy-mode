@@ -41,6 +41,7 @@ platform :ios do
       output_name: "EasyMode.ipa",
       export_options: {
         signingStyle: "manual",
+      teamID: ENV["TEAM_ID"],
         provisioningProfiles: {
           "com.easymode.app" => "match AppStore com.easymode.app"
         }
