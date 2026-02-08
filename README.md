@@ -1,62 +1,357 @@
 # Easy Mode - AI Life Coach
 
-Your AI life coach for building confidence through **Action**, **Audacity**, and **Enjoyment**.
+> **Commit to Change: An AI Agents Hackathon**  
+> Categories: **Productivity & Work Habits** | **Personal Growth & Learning** | **Best Use of Opik**
 
-Easy Mode teaches users three core principles:
-- **Action**: Clear and simple actions to build momentum
-- **Audacity**: Bold asks that expand your comfort zone  
-- **Enjoyment**: Romanticize everyday moments
+Your AI life coach for building confidence through **Action**, **Audacity**, and **Enjoyment**. Easy Mode transforms New Year's resolutions into daily micro-habits using AI-powered coaching, adaptive planning, and comprehensive observability.
 
-## Architecture
+## What is Easy Mode?
 
-```
-easy_mode/
-├── lib/
-│   ├── core/                    # Shared code
-│   │   ├── constants/           # App constants
-│   │   ├── models/              # Data models
-│   │   ├── providers/           # Riverpod providers
-│   │   ├── services/            # Firebase services
-│   │   └── theme/               # App theming
-│   ├── features/                # Feature modules
-│   │   ├── auth/                # Authentication
-│   │   ├── onboarding/          # User onboarding
-│   │   ├── home/                # Daily task screen
-│   │   ├── scripts/             # Audacity scripts
-│   │   ├── rituals/             # Joy rituals
-│   │   ├── progress/            # XP & badges
-│   │   └── profile/             # User settings
-│   ├── widgets/                 # Shared widgets
-│   ├── app_shell.dart           # Bottom navigation
-│   └── main.dart                # Entry point
-├── functions/                   # Firebase Cloud Functions
-│   ├── src/
-│   │   └── index.ts             # XP, badges, notifications
-│   └── test/
-├── scripts/                     # Utility scripts
-│   ├── seed_data.json           # Seed content
-│   └── seed_firestore.js        # Seed script
-├── test/                        # Flutter tests
-│   ├── unit/
-│   └── widget/
-└── demo/                        # Demo materials
-```
+Easy Mode is a mobile app that helps users build sustainable productivity habits by:
+
+- **Breaking down big goals** into 5-10 minute daily micro-tasks
+- **Using AI agents** to personalize recommendations based on user behavior
+- **Adapting difficulty** based on completion rates (the coach learns from you)
+- **Tracking everything** with Opik for continuous improvement
+
+### Core Principles
+
+| Principle | Description | In-App Feature |
+|-----------|-------------|----------------|
+| **Action** | Small steps create momentum | Daily micro-tasks (5-10 min) |
+| **Audacity** | Bold asks expand comfort zones | Audacity Scripts with risk levels |
+| **Enjoyment** | Romanticize everyday moments | Joy Rituals for mindfulness |
+
+---
+
+## Live Demo
+
+**Video Demo:** [YouTube Link - Coming Soon]
+
+**Test Account:**
+- Email: `demo@easymode.app`
+- Password: `demo123!`
+
+---
+
+## Hackathon Categories
+
+### Productivity & Work Habits
+
+Easy Mode directly addresses the challenge of turning New Year's resolutions into lasting habits:
+
+| Judging Criteria | How Easy Mode Delivers |
+|------------------|----------------------|
+| **Functionality** | Fully working Flutter app with Firebase backend, AI personalization, gamified progress |
+| **Real-world relevance** | Addresses the #1 problem with resolutions: they're too big. We break them into 5-min daily actions |
+| **Use of LLMs/Agents** | 6 AI-powered Cloud Functions with multi-step reasoning, tool use, and autonomous decision-making |
+| **Evaluation & observability** | Full Opik integration with LLM-as-Judge evaluations, experiment tracking, and adaptive learning |
+| **Goal Alignment** | XP system, streaks, badges, and weekly plans keep users engaged and progressing |
+
+### Personal Growth & Learning
+
+Easy Mode is fundamentally a **personal development tool** that helps users grow emotionally and build new skills:
+
+| Judging Criteria | How Easy Mode Delivers |
+|------------------|----------------------|
+| **Functionality** | Complete coaching system with lessons, practice scripts, and reflection prompts |
+| **Real-world relevance** | Teaches confidence-building skills applicable to work, relationships, and life |
+| **Use of LLMs/Agents** | AI personalizes growth journey based on aspirations and progress |
+| **Evaluation & observability** | Tracks learning progress with XP, evaluates AI coaching quality with Opik |
+| **Goal Alignment** | Core mission is emotional growth - overcoming self-doubt, building assertiveness, finding joy |
+
+**Key Personal Growth Features:**
+- **Audacity Scripts**: Learn to ask for what you want with word-for-word templates
+- **Resilience Flows**: "I couldn't do it" paths teach users to handle setbacks constructively
+- **Aspiration-Based Onboarding**: Users define their growth identity ("I speak up for what I want")
+- **Reflection Prompts**: Weekly summaries encourage self-awareness and learning from experience
+- **Skill Progression**: XP and levels make personal development feel rewarding and tangible
+
+### Best Use of Opik
+
+Easy Mode showcases exceptional Opik integration for AI evaluation and observability:
+
+| Opik Feature | Implementation |
+|--------------|----------------|
+| **Tracing** | All AI calls traced with full context (user, task, behavior patterns) |
+| **LLM-as-Judge** | 5 evaluation metrics scored automatically on every AI response |
+| **Experiment Tracking** | Prompt versions tracked with hashes for A/B testing |
+| **Feedback Scores** | Evaluation scores attached to traces for performance analysis |
+| **Batch Queues** | Proper flushing with timeout protection in Cloud Functions |
+| **Experiment Reports** | Cloud Function generates comparative analysis across prompt versions |
+
+---
 
 ## Tech Stack
 
-- **Frontend**: Flutter 3.16+, Riverpod, Google Fonts
-- **Backend**: Firebase (Auth, Firestore, Cloud Functions, FCM)
-- **State Management**: Riverpod
-- **CI/CD**: GitHub Actions
+```
+Frontend                 Backend                    AI/ML
+------------------------+------------------------+------------------------
+Flutter 3.16+           Firebase Auth             OpenAI GPT-4o-mini
+Riverpod (State)        Cloud Firestore           Opik (Observability)
+flutter_animate         Cloud Functions (Node 20) LLM-as-Judge Evals
+confetti (Celebrations) Firebase Messaging (FCM)  Multi-step Agents
+```
+
+### Architecture
+
+```
+easy_mode/
+├── lib/                          # Flutter app
+│   ├── core/
+│   │   ├── services/
+│   │   │   ├── ai_service.dart   # Cloud Function calls
+│   │   │   ├── firestore_service.dart
+│   │   │   └── analytics_service.dart
+│   │   ├── models/               # Data models
+│   │   └── providers/            # Riverpod state
+│   └── features/
+│       ├── home/                 # Daily task + Coach Decides
+│       ├── actions/              # Action library
+│       ├── scripts/              # Audacity scripts
+│       ├── rituals/              # Joy rituals
+│       ├── progress/             # XP, badges, momentum tracker
+│       └── onboarding/           # Aspiration-based onboarding
+│
+├── functions/                    # Firebase Cloud Functions
+│   └── src/
+│       ├── index.ts              # 8 Cloud Functions
+│       └── opik.ts               # Opik integration module
+│
+└── scripts/                      # Utilities
+    └── seed_firestore.js         # Seed data
+```
+
+---
+
+## AI Features & Agentic System
+
+### 1. Smart Task Recommendations
+
+**Function:** `getSmartRecommendation`
+
+Combines rule-based scoring with AI selection:
+
+```
+User Behavior Analysis     Rule-Based Scoring        AI Selection
+------------------------->------------------------->------------------------->
+- 30-day task history     - Recency penalty         - GPT-4o-mini picks best
+- Success rates by type   - Type preference boost   - Explains reasoning
+- Peak activity hours     - Time-of-day matching    - Personalized tip
+- Category preferences    - Variety encouragement   
+```
+
+**Opik Integration:**
+- Traces include full behavior pattern context
+- LLM-as-Judge evaluates: `task_relevance`, `specificity`, `engagement_potential`
+
+### 2. Coach Decides (Autonomous Decision-Making)
+
+**Function:** `coachDecides`
+
+When users tap "Let Coach Decide," the AI makes a decision FOR them:
+
+```dart
+// User taps button -> AI analyzes context -> AI picks task -> Shows reasoning
+```
+
+**Key Features:**
+- Full context analysis (streak, time of day, energy alignment, weekly plan)
+- Confident decision with detailed reasoning shown to user
+- High/Medium confidence indicator
+- "Why this task, right now?" explanation
+
+**Opik Integration:**
+- Traces include decision context and selected task
+- Evaluates: `task_relevance`, `decision_confidence`, `engagement_potential`
+- Evaluation scores stored in analytics for performance tracking
+
+### 3. Planner Agent (Multi-Step Reasoning)
+
+**Function:** `generateWeeklyPlan`
+
+Uses OpenAI function calling for tool-use pattern:
+
+```typescript
+const PLANNER_TOOLS = [
+  { name: 'create_milestone', ... },    // Break goal into weekly milestones
+  { name: 'create_daily_task', ... },   // Plan specific daily micro-tasks
+  { name: 'adjust_difficulty', ... },   // Adapt based on completion rate
+];
+```
+
+**Agentic Loop:**
+1. Analyze user goal and 30-day behavior patterns
+2. Create 4 weekly milestones (tool calls)
+3. Generate daily tasks for current week (tool calls)
+4. Adjust difficulty based on completion rate (tool call)
+5. Store reasoning for transparency
+
+### 4. Adaptive Replanning (Scheduled Agent)
+
+**Function:** `weeklyReplanningCheck` (Runs every Sunday 8 PM UTC)
+
+```
+Completion Rate     Action               Next Week
+----------------+------------------+-------------------
+< 60%           | Simplify         | Difficulty - 1
+60-80%          | Maintain         | Same difficulty
+> 80%           | Increase         | Difficulty + 1
+```
+
+The system automatically adjusts without user intervention, storing adjustment reasoning in Firestore.
+
+### 5. Task Personalization
+
+**Function:** `personalizeTask`
+
+Takes base task templates and personalizes them based on:
+- User name, streak, level
+- Goal and pain points
+- Daily time budget
+
+Returns: personalized description, coach tip, motivational note
+
+### 6. Daily AI Insights
+
+**Function:** `generateDailyInsight`
+
+Generates personalized daily coaching messages with:
+- Contextual greeting
+- Progress insight based on 7-day activity
+- Focus suggestion for today
+- Encouragement message
+
+---
+
+## Opik Integration Deep Dive
+
+### Module: `functions/src/opik.ts`
+
+```typescript
+// Core integration
+import { Opik, Trace } from 'opik';
+import { trackOpenAI } from 'opik-openai';
+
+// Singleton client with workspace/project configuration
+const opikClient = new Opik({
+  apiKey: OPIK_API_KEY,
+  workspaceName: OPIK_WORKSPACE,
+  projectName: 'easy-mode',
+});
+
+// Auto-traced OpenAI client
+const openai = trackOpenAI(openai, {
+  client: opikClient,
+  traceMetadata: { userId, feature: 'coach_decides' },
+});
+```
+
+### LLM-as-Judge Evaluation Metrics
+
+| Metric | What It Measures | Score Range |
+|--------|------------------|-------------|
+| `task_relevance` | How well task matches user's stated goal | 1-5 |
+| `specificity` | How actionable and specific the response is | 1-5 |
+| `safety` | Whether advice is safe and appropriate | 1-5 |
+| `engagement_potential` | How motivating the response is likely to be | 1-5 |
+| `decision_confidence` | Quality of reasoning in Coach Decides | 1-5 |
+
+### Evaluation Flow
+
+```typescript
+// 1. Create trace for AI operation
+const trace = createTrace({
+  name: 'coach_decides',
+  userId,
+  functionName: 'coachDecides',
+  input: { userId, timestamp },
+  tags: ['coach-decides', 'decision-making'],
+});
+
+// 2. Track prompt experiment version
+trackPromptExperiment(trace, {
+  name: 'coach_decides_experiment',
+  version: 'v1',
+  systemPrompt,
+  userPromptTemplate,
+});
+
+// 3. Run LLM-as-Judge evaluations
+const evaluationScores = await runEvaluations(openai, [
+  { config: EVALUATION_PROMPTS.taskRelevance, variables: {...} },
+  { config: EVALUATION_PROMPTS.decisionConfidence, variables: {...} },
+  { config: EVALUATION_PROMPTS.engagementPotential, variables: {...} },
+]);
+
+// 4. End trace with output and scores
+await endTrace(trace, { selectedTask, coachDecision }, evaluationScores);
+
+// 5. Flush before Cloud Function terminates
+await flushOpik();
+```
+
+### Experiment Comparison Reports
+
+**Function:** `generateExperimentReport`
+
+Generates data-driven insights:
+- Average scores by prompt version
+- Score distribution (min, max, stdDev)
+- Best performing versions by event type
+- Actionable recommendations
+
+```json
+{
+  "experiments": [
+    {
+      "eventType": "coach_decides",
+      "promptVersion": "v1",
+      "avgScores": { "task_relevance": 4.2, "decision_confidence": 3.9 },
+      "sampleCount": 150
+    }
+  ],
+  "recommendations": [
+    "coach_decides: High variance in decision_confidence (stdDev: 1.2) - consider making prompt more consistent"
+  ],
+  "bestPerformers": { "coach_decides": "v1", "daily_insight": "v1" }
+}
+```
+
+---
+
+## XP & Gamification System
+
+### XP Economy
+
+| Action | Base XP | Streak Bonus |
+|--------|---------|--------------|
+| Complete daily task | 100 | +10% per day (day 3+, max 50%) |
+| Attempt audacity script | 200 | +10% per day |
+| Audacity success bonus | +100 | +10% per day |
+| Complete joy ritual | 100 | +10% per day |
+
+**Leveling:** 500 XP per level
+
+### Badges
+
+| Badge | Trigger |
+|-------|---------|
+| First Step | Complete first task |
+| Bold Beginner | First audacity attempt |
+| Level 5/10/25/50 | Reach level milestone |
+| Streak badges | 3/7/14/30 day streaks |
+
+---
 
 ## Getting Started
 
 ### Prerequisites
 
 - Flutter 3.16+ ([Install Flutter](https://flutter.dev/docs/get-started/install))
-- Node.js 18+ (for Cloud Functions)
+- Node.js 20+ (for Cloud Functions)
 - Firebase CLI (`npm install -g firebase-tools`)
-- A Firebase project
+- Opik account ([Get API Key](https://www.comet.com/site/products/opik/))
 
 ### Setup
 
@@ -66,140 +361,56 @@ easy_mode/
    cd easy-mode
    ```
 
-2. **Set up Firebase**
+2. **Configure Firebase**
    ```bash
-   # Login to Firebase
    firebase login
-   
-   # Initialize Firebase (select your project)
-   firebase init
-   
-   # Select: Firestore, Functions, Hosting (optional)
-   ```
-
-3. **Configure Firebase for Flutter**
-   ```bash
-   # Install FlutterFire CLI
    dart pub global activate flutterfire_cli
-   
-   # Configure Firebase
    flutterfire configure
    ```
 
-4. **Install dependencies**
+3. **Install dependencies**
    ```bash
-   # Flutter dependencies
    flutter pub get
-   
-   # Cloud Functions dependencies
    cd functions && npm install && cd ..
    ```
 
-5. **Seed Firestore with initial data**
+4. **Set up environment variables**
+   ```bash
+   cd functions
+   cp .env.example .env
+   # Edit .env with your keys:
+   # OPENAI_API_KEY=sk-...
+   # OPIK_API_KEY=...
+   # OPIK_WORKSPACE=your-workspace
+   # OPIK_PROJECT=easy-mode
+   ```
+
+5. **Seed Firestore**
    ```bash
    cd scripts
    node seed_firestore.js
    ```
 
-6. **Run the app**
+6. **Deploy Cloud Functions**
+   ```bash
+   cd functions
+   npm run build
+   firebase deploy --only functions
+   ```
+
+7. **Run the app**
    ```bash
    flutter run
    ```
 
-### Environment Variables
-
-Create a `.env` file (not committed to git):
-
-```
-# Optional: For LLM-powered features
-OPENAI_API_KEY=your_key_here
-```
-
-For Firebase, the configuration is handled by FlutterFire CLI which generates `firebase_options.dart`.
-
-## AI Features Setup
-
-Easy Mode includes AI-powered coaching features that provide personalized task descriptions and daily insights.
-
-### Features
-
-| Feature | Description |
-|---------|-------------|
-| **Task Personalization** | AI personalizes task descriptions based on user context (name, streak, level, goals) and provides a "Coach Tip" |
-| **Daily AI Insights** | Generates personalized daily coaching messages with greeting, insight, focus area, and encouragement |
-
-### Setup OpenAI API Key
-
-1. **Get an OpenAI API Key**
-   - Visit [platform.openai.com](https://platform.openai.com)
-   - Create an account or sign in
-   - Navigate to API Keys and create a new key
-
-2. **Set the API key in Firebase Functions config**
-   ```bash
-   cd functions
-   firebase functions:config:set openai.key="YOUR_OPENAI_API_KEY"
-   ```
-
-3. **Deploy the functions**
-   ```bash
-   firebase deploy --only functions
-   ```
-
-4. **Verify deployment**
-   ```bash
-   firebase functions:config:get
-   ```
-   You should see your key configured (partially masked).
-
-### Local Development with Emulator
-
-To test AI features locally without deploying:
-
-```bash
-cd functions
-
-# Set environment variable for emulator
-export OPENAI_KEY="your_key_here"
-
-# Or create .runtimeconfig.json for emulator
-echo '{"openai":{"key":"YOUR_OPENAI_API_KEY"}}' > .runtimeconfig.json
-
-# Start the emulator
-firebase emulators:start --only functions
-```
-
-### Cost Estimates
-
-The AI features use OpenAI's `gpt-4o-mini` model for cost efficiency:
-
-| Operation | Tokens | Est. Cost |
-|-----------|--------|-----------|
-| Task Personalization | ~300 | ~$0.0005 |
-| Daily Insight | ~250 | ~$0.0004 |
-| **Per user per day** | ~550 | ~$0.001 |
-
-### Disabling AI Features
-
-If you want to run without AI features, they gracefully fall back to default content when:
-- OpenAI API key is not configured
-- API calls fail for any reason
-- User is offline
-
-No code changes needed - the app will show original task descriptions and static quotes instead.
+---
 
 ## Running Tests
 
 ### Flutter Tests
 ```bash
-# Run all tests
 flutter test
-
-# Run with coverage
 flutter test --coverage
-
-# Run specific test file
-flutter test test/unit/models_test.dart
 ```
 
 ### Cloud Functions Tests
@@ -208,33 +419,42 @@ cd functions
 npm test
 ```
 
-## Deployment
-
-### Cloud Functions
+### Opik Observability Tests
+Generate real AI traces with LLM-as-Judge evaluations:
 ```bash
-cd functions
-npm run build
-firebase deploy --only functions
+cd scripts
+npm install dotenv opik opik-openai openai
+node test_opik_observability.js  # Basic test (5 scenarios)
+node test_opik_advanced.js       # Advanced test (8 scenarios)
 ```
 
-### Firestore Rules
-```bash
-firebase deploy --only firestore:rules
-```
+**Test Results Summary:**
+| Test Suite | Scenarios | Pass Rate | Avg Relevance | Avg Specificity |
+|------------|-----------|-----------|---------------|-----------------|
+| Basic | 5 | 100% | 5.0/5 | 4.2/5 |
+| Advanced | 8 | 100% | 5.0/5 | 4.4/5 |
 
-### Mobile Apps
+View traces at: https://www.comet.com/opik/ravikiran/easy-mode/traces
 
-For TestFlight/Play Store deployment, see `fastlane/README.md` (when configured).
+See [docs/OPIK_INTEGRATION.md](docs/OPIK_INTEGRATION.md) for detailed test results.
 
-## Demo
+---
 
-See [demo/DEMO_SCRIPT.md](demo/DEMO_SCRIPT.md) for a 60-90 second walkthrough of the app.
+## Opik Dashboard Screenshots
 
-### Demo User
+### Trace View
+![Opik Trace View](docs/screenshots/opik-trace.png)
+*Full trace with input, output, and evaluation scores*
 
-After seeding, you can create a test account or use:
-- Email: `demo@easymode.app`
-- Password: `demo123!`
+### Experiment Comparison
+![Experiment Comparison](docs/screenshots/opik-experiments.png)
+*Prompt version comparison with metrics*
+
+### LLM-as-Judge Scores
+![Evaluation Scores](docs/screenshots/opik-scores.png)
+*Feedback scores attached to each trace*
+
+---
 
 ## Data Model
 
@@ -246,37 +466,68 @@ After seeding, you can create a test account or use:
 | `users/{uid}/userTasks` | Completed task records |
 | `users/{uid}/userScripts` | Audacity script attempts |
 | `users/{uid}/userRituals` | Ritual completions |
-| `tasks` | Task templates (seeded) |
-| `scripts` | Audacity scripts (seeded) |
-| `rituals` | Joy rituals (seeded) |
-| `badges` | Badge definitions (seeded) |
-| `analytics` | Event logs |
+| `users/{uid}/weeklyPlans` | AI-generated weekly plans |
+| `tasks` | Task templates |
+| `scripts` | Audacity scripts |
+| `rituals` | Joy rituals |
+| `badges` | Badge definitions |
+| `analytics` | Event logs with evaluation scores |
+| `experimentReports` | Generated experiment comparison reports |
 
-## XP Economy
+---
 
-| Action | XP Reward |
-|--------|-----------|
-| Complete daily task | 100 XP |
-| Attempt audacity script | 200 XP |
-| Audacity success bonus | +100 XP |
-| Complete joy ritual | 100 XP |
-| Streak bonus (day 3+) | +10% per day (max 50%) |
+## Key Differentiators
 
-**Leveling**: 500 XP per level
+### vs. Generic Habit Trackers
+- **AI Personalization**: Tasks adapt to your behavior patterns
+- **Agentic Planning**: The coach creates your weekly plan
+- **Coach Decides**: Let AI pick for you when you're overwhelmed
 
-## Contributing
+### vs. Other AI Apps
+- **Full Observability**: Every AI decision is traced and evaluated
+- **LLM-as-Judge**: Automatic quality scoring on all responses
+- **Experiment Tracking**: Prompt versions compared with data
+- **Adaptive Learning**: System improves based on evaluation metrics
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+---
+
+## Cost Estimates
+
+| Operation | Model | Est. Cost |
+|-----------|-------|-----------|
+| Task Personalization | gpt-4o-mini | ~$0.0005 |
+| Daily Insight | gpt-4o-mini | ~$0.0004 |
+| Smart Recommendation | gpt-4o-mini | ~$0.0008 |
+| Coach Decides | gpt-4o-mini | ~$0.001 |
+| Weekly Plan (with tools) | gpt-4o-mini | ~$0.003 |
+| LLM-as-Judge (per eval) | gpt-4o-mini | ~$0.0002 |
+| **Per user per day** | | **~$0.005** |
+
+---
+
+## Team
+
+- **[Your Name]** - Full Stack Developer
+
+---
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT License - see [LICENSE](LICENSE)
+
+---
 
 ## Acknowledgments
 
-- Built for hackathon submission
+- Built for **Commit to Change: An AI Agents Hackathon** by Encode Club
+- Powered by [Opik](https://www.comet.com/site/products/opik/) for AI observability
 - Inspired by principles of habit formation and positive psychology
+
+---
+
+## Links
+
+- [Demo Video](https://youtube.com/...)
+- [Live App](https://easymode.app)
+- [Opik Dashboard](https://www.comet.com/opik/ravikiran/easy-mode/traces)
+- [GitHub Repository](https://github.com/...)

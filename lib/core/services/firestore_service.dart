@@ -215,6 +215,39 @@ class FirestoreService {
         .add(actionData);
   }
 
+  /// Get user actions
+  Future<List<Map<String, dynamic>>> getUserActions(String uid) async {
+    final snapshot = await _firestore
+        .collection(AppConstants.usersCollection)
+        .doc(uid)
+        .collection(AppConstants.userActionsCollection)
+        .get();
+    
+    return snapshot.docs.map((doc) => {...doc.data(), 'id': doc.id}).toList();
+  }
+
+  /// Get user scripts (audacity attempts)
+  Future<List<Map<String, dynamic>>> getUserScripts(String uid) async {
+    final snapshot = await _firestore
+        .collection(AppConstants.usersCollection)
+        .doc(uid)
+        .collection(AppConstants.userScriptsCollection)
+        .get();
+    
+    return snapshot.docs.map((doc) => {...doc.data(), 'id': doc.id}).toList();
+  }
+
+  /// Get user rituals
+  Future<List<Map<String, dynamic>>> getUserRituals(String uid) async {
+    final snapshot = await _firestore
+        .collection(AppConstants.usersCollection)
+        .doc(uid)
+        .collection(AppConstants.userRitualsCollection)
+        .get();
+    
+    return snapshot.docs.map((doc) => {...doc.data(), 'id': doc.id}).toList();
+  }
+
   // ============ BADGE OPERATIONS ============
 
   /// Get all badges

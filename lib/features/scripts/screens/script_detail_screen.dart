@@ -4,6 +4,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/models/script_model.dart';
 import '../../../core/providers/auth_providers.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../progress/providers/progress_provider.dart';
 
 /// Script detail screen with practice and logging
 class ScriptDetailScreen extends ConsumerStatefulWidget {
@@ -75,6 +76,9 @@ class _ScriptDetailScreenState extends ConsumerState<ScriptDetailScreen> {
         xpEarned,
         widget.script.riskLevel,
       );
+
+      // Invalidate stats provider to refresh progress screen
+      ref.invalidate(userStatsProvider);
 
       if (mounted) {
         _showResultDialog(outcome, xpEarned);

@@ -5,6 +5,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/models/action_model.dart';
 import '../../../core/providers/auth_providers.dart';
 import '../providers/actions_provider.dart';
+import '../../progress/providers/progress_provider.dart';
 
 /// Action Library screen - Quick wins and micro-tasks
 class ActionsScreen extends ConsumerStatefulWidget {
@@ -652,6 +653,9 @@ class _ActionsScreenState extends ConsumerState<ActionsScreen> {
 
     // Track action completion analytics
     await analytics.trackActionComplete(action.id, action.category, action.xpReward);
+
+    // Invalidate stats provider to refresh progress screen
+    ref.invalidate(userStatsProvider);
 
     if (mounted) {
       setState(() {

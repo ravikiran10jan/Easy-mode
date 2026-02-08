@@ -48,7 +48,7 @@ class ProgressScreen extends ConsumerWidget {
                   padding: const EdgeInsets.only(
                     left: AppTheme.spacingMd,
                     right: AppTheme.spacingMd,
-                    bottom: 100, // Space for floating nav
+                    bottom: 140, // Increased space for floating nav and badges
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

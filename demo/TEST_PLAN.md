@@ -156,3 +156,140 @@ GitHub Actions runs on every PR:
 2. LLM features are behind feature flag (not implemented)
 3. Push notifications require FCM setup per platform
 4. No deep linking support yet
+
+---
+
+## 5. Opik Observability Tests
+
+Location: `scripts/`
+
+These tests demonstrate the Opik integration for AI observability, generating real traces with LLM-as-Judge evaluations.
+
+### Test Scripts
+
+| Script | Purpose |
+|--------|---------|
+| `test_opik_observability.js` | Basic AI function traces (5 scenarios) |
+| `test_opik_advanced.js` | A/B testing, user segments, edge cases (8 scenarios) |
+
+### Setup
+
+```bash
+cd scripts
+npm install dotenv opik opik-openai openai
+```
+
+### Run Tests
+
+```bash
+# Basic test - 5 AI function scenarios
+node test_opik_observability.js
+
+# Advanced test - A/B testing, user segments, edge cases
+node test_opik_advanced.js
+```
+
+### Basic Test Scenarios
+
+| Scenario | Description | Evaluations |
+|----------|-------------|-------------|
+| `personalize_task` | Personalizes a task for user context | task_relevance, specificity, engagement_potential |
+| `daily_insight` | Generates daily coaching insight | task_relevance, specificity, engagement_potential |
+| `coach_decides` | AI decides best task for user | task_relevance, specificity, engagement_potential |
+| `smart_recommendation` | Behavior-based recommendation | task_relevance, specificity, engagement_potential |
+| `weekly_plan_reasoning` | Multi-step weekly plan generation | task_relevance, specificity, engagement_potential |
+
+### Advanced Test Scenarios
+
+**Prompt A/B Testing:**
+| Version | Tone | Purpose |
+|---------|------|---------|
+| v1-formal | Professional | Compare formal coaching tone |
+| v2-casual | Friendly/Fun | Compare casual coaching tone |
+| v3-encouraging | Empathetic | Compare encouraging coaching tone |
+
+**User Segment Tests:**
+| Segment | Purpose |
+|---------|---------|
+| new_user | Test recommendations for users with no history |
+| struggling_user | Test support for users with broken streaks |
+| power_user | Test challenges for highly engaged users |
+
+**Edge Case Tests:**
+| Case | Purpose |
+|------|---------|
+| minimal_input | Verify handling of sparse user data |
+| complex_goal | Verify handling of overwhelming multi-part goals |
+
+### Test Results (Latest Run)
+
+#### Basic Test Results
+
+| Scenario | Tokens | Relevance | Specificity | Engagement | Status |
+|----------|--------|-----------|-------------|------------|--------|
+| personalize_task | 279 | 5 | 4 | 4 | PASS |
+| daily_insight | 278 | 5 | 4 | 5 | PASS |
+| coach_decides | 450 | 5 | 4 | 4 | PASS |
+| smart_recommendation | 412 | 5 | 4 | 4 | PASS |
+| weekly_plan_reasoning | 480 | 5 | 5 | 4 | PASS |
+
+**Total: 5/5 passed**
+
+#### Advanced Test Results
+
+| Category | Tests | Passed | Avg Relevance | Avg Safety |
+|----------|-------|--------|---------------|------------|
+| Prompt A/B Testing | 3 | 3 | 5.0 | N/A |
+| User Segment Tests | 3 | 3 | 5.0 | N/A |
+| Edge Case Tests | 2 | 2 | 5.0 | 5.0 |
+
+**Total: 8/8 passed**
+
+### Viewing Results in Opik Dashboard
+
+**Dashboard URL:**
+```
+https://www.comet.com/opik/ravikiran/easy-mode/traces
+```
+
+**Useful Filters:**
+- Tag: `test` - All test traces
+- Tag: `prompt-experiment` - A/B testing results
+- Tag: `user-segment` - User adaptation tests
+- Tag: `edge-case` - Edge case robustness
+
+### What Each Test Generates
+
+Each test creates an Opik trace with:
+- Full input/output payload
+- Auto-created spans for OpenAI calls
+- LLM-as-Judge evaluation scores
+- Prompt version metadata
+- Token usage and latency metrics
+
+### Expected Output
+
+```
+=== Opik Observability Test ===
+
+Opik Workspace: ravikiran
+Opik Project: easy-mode
+
+Starting Opik observability tests...
+Running 5 test scenarios
+
+[1/5] Running: personalize_task
+   Description: Task personalization for user
+   Response received (279 tokens)
+   Evaluations: relevance=5, specificity=4, engagement=4
+   Trace completed with 3 feedback scores
+...
+
+===========================================
+TEST SUMMARY
+===========================================
+
+Total scenarios: 5
+Successful: 5
+Failed: 0
+```

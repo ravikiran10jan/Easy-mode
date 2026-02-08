@@ -288,35 +288,38 @@ class MomentumTrackerCard extends ConsumerWidget {
     final level = momentum.momentumLevel;
     
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: AppTheme.accentColor.withOpacity(0.1),
         borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            Icons.trending_up_rounded,
-            color: AppTheme.accentColor,
-            size: 18,
-          ),
-          const SizedBox(width: 8),
-          Text(
-            level.label,
-            style: TextStyle(
-              color: AppTheme.accentColor,
-              fontWeight: FontWeight.w600,
-              fontSize: 13,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              level.description,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppTheme.textSecondary,
+          Row(
+            children: [
+              Icon(
+                Icons.trending_up_rounded,
+                color: AppTheme.accentColor,
+                size: 18,
               ),
-              overflow: TextOverflow.ellipsis,
+              const SizedBox(width: 8),
+              Text(
+                level.label,
+                style: TextStyle(
+                  color: AppTheme.accentColor,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            level.description,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: AppTheme.textSecondary,
+              height: 1.3,
             ),
           ),
         ],

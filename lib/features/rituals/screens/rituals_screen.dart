@@ -5,6 +5,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/models/ritual_model.dart';
 import '../../../core/providers/auth_providers.dart';
 import '../providers/rituals_provider.dart';
+import '../../progress/providers/progress_provider.dart';
 
 /// Enjoyment Rituals screen
 class RitualsScreen extends ConsumerStatefulWidget {
@@ -447,6 +448,9 @@ class _RitualsScreenState extends ConsumerState<RitualsScreen> {
 
     // Track ritual completion analytics
     await analytics.trackRitualComplete(_selectedRitual!.id, 100);
+
+    // Invalidate stats provider to refresh progress screen
+    ref.invalidate(userStatsProvider);
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(

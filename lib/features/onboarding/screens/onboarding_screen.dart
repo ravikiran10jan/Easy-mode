@@ -409,6 +409,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 .slideY(begin: 0.3, end: 0),
             ],
           ),
+          
+          // Bottom spacing to prevent cut-off
+          const SizedBox(height: AppTheme.spacingXxl),
         ],
       ),
     );

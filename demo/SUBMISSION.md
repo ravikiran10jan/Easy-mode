@@ -1,118 +1,236 @@
 # Easy Mode - Hackathon Submission
 
+> **Commit to Change: An AI Agents Hackathon**  
+> Categories: **Productivity & Work Habits** | **Personal Growth & Learning** | **Best Use of Opik**
+
+---
+
 ## Project Overview
 
-**Easy Mode** is an AI-powered life coaching app that helps users build confidence through three core principles:
+**Easy Mode** is an AI-powered life coaching app that transforms New Year's resolutions into lasting habits through:
 
-- **Action**: Clear, simple tasks that create momentum
-- **Audacity**: Bold asks that expand comfort zones
+- **Action**: 5-10 minute micro-tasks that create momentum
+- **Audacity**: Bold asks with word-for-word scripts
 - **Enjoyment**: Rituals that romanticize everyday moments
+
+---
 
 ## Problem Statement
 
-Many people struggle with:
-- Taking action on goals due to overwhelm
-- Asking for what they want (negotiations, requests, boundaries)
-- Bouncing back from setbacks
-- Finding joy in daily routines
+**90% of New Year's resolutions fail.** Why?
 
-Easy Mode addresses these by providing:
-- One manageable daily task
-- Pre-written scripts for bold asks
-- Resilience flows when things don't go as planned
-- Joy rituals to appreciate everyday moments
+- Goals are too big and overwhelming
+- No clear daily action steps
+- Setbacks feel like failure
+- No accountability or feedback
 
-## Core Features
+**Easy Mode solves this by:**
+- Breaking goals into 5-10 minute daily micro-tasks
+- Using AI to personalize recommendations based on behavior patterns
+- Rewarding attempts, not just success (XP for trying)
+- Providing an AI coach that adapts difficulty based on completion rates
 
-### 1. Daily Easy Mode Moment
-- Personalized daily task based on user's goals
-- Built-in timer for accountability
-- "I couldn't" flow for supportive resilience
+---
 
-### 2. Audacity Scripts
-- Word-for-word templates for bold asks
-- Risk levels (Low/Medium/High)
-- Outcome tracking (Success/Partial/Declined)
-- All attempts earn XP - trying matters!
+## Core AI Features
 
-### 3. Joy Rituals
-- Curated micro-rituals for daily enjoyment
-- Quick 3-10 minute activities
-- Mood tracking capabilities
+### 1. Smart Task Recommendations
+AI analyzes 30 days of user behavior to recommend the perfect task:
+- Preferred task types and categories
+- Success rates by task type
+- Peak activity hours
+- Recent completions (variety boost)
 
-### 4. Gamification
-- XP for every action
-- Levels with meaningful titles
-- Streak bonuses (up to 50% XP boost)
-- Achievement badges
+### 2. Coach Decides (Autonomous AI)
+When users feel overwhelmed, they tap "Let Coach Decide" and the AI:
+- Analyzes full user context (streak, time, energy, weekly plan)
+- Makes a decision FOR the user
+- Explains reasoning with full transparency
+
+### 3. Planner Agent (Multi-Step Reasoning)
+Uses OpenAI function calling with tools:
+- `create_milestone` - Break goal into weekly milestones
+- `create_daily_task` - Plan specific daily tasks
+- `adjust_difficulty` - Adapt based on completion rate
+
+### 4. Adaptive Replanning
+Scheduled agent runs weekly to:
+- Analyze completion rates
+- Simplify if < 60% completion
+- Increase challenge if > 80% completion
+- Store reasoning for transparency
+
+---
+
+## Personal Growth & Learning
+
+Easy Mode is fundamentally a **personal development tool**:
+
+### Emotional Growth
+- **Overcoming Self-Doubt**: Daily micro-wins build confidence over time
+- **Building Assertiveness**: Audacity Scripts teach users to ask for what they want
+- **Resilience Training**: "I couldn't do it" flows teach constructive setback handling
+
+### Skill Development
+- **Word-for-Word Templates**: Audacity Scripts for negotiations, boundaries, requests
+- **Risk-Graduated Learning**: Low/Medium/High risk levels let users progress at their pace
+- **Outcome Tracking**: Learn from successes AND rejections (both earn XP)
+
+### Self-Awareness
+- **Aspiration-Based Onboarding**: Users define their growth identity
+  - "I speak up for what I want"
+  - "I take action without overthinking"
+  - "I find joy in ordinary moments"
+- **Weekly AI Reflections**: Summaries encourage learning from experience
+- **Progress Visualization**: XP/levels make growth tangible and rewarding
+
+---
+
+## Opik Integration (Best Use of Opik)
+
+### Full Tracing
+Every AI call is traced with:
+- User context (goals, pain points, streak)
+- Behavior patterns (30-day analysis)
+- Task candidates and selection reasoning
+
+### LLM-as-Judge Evaluations
+5 evaluation metrics scored on every AI response:
+
+| Metric | What It Measures |
+|--------|------------------|
+| `task_relevance` | How well task matches user's stated goal |
+| `specificity` | How actionable and specific the response is |
+| `safety` | Whether advice is safe and appropriate |
+| `engagement_potential` | How motivating the response is likely to be |
+| `decision_confidence` | Quality of reasoning in Coach Decides |
+
+### Experiment Tracking
+- Prompt versions tracked with content hashes
+- Experiment comparison reports generated on demand
+- Recommendations for prompt improvement
+
+### Data-Driven Improvement
+```typescript
+// Example: Experiment Report Output
+{
+  "experiments": [
+    {
+      "eventType": "coach_decides",
+      "promptVersion": "v1",
+      "avgScores": { "task_relevance": 4.2, "decision_confidence": 3.9 },
+      "sampleCount": 150
+    }
+  ],
+  "recommendations": [
+    "coach_decides: High variance in decision_confidence - consider more consistent prompt"
+  ]
+}
+```
+
+---
 
 ## Technical Architecture
 
 ```
-┌─────────────────┐     ┌──────────────────┐
-│   Flutter App   │────▶│  Firebase Auth   │
-│   (iOS/Android) │     └──────────────────┘
-└────────┬────────┘              │
-         │                       ▼
-         │              ┌──────────────────┐
-         ├─────────────▶│    Firestore     │
-         │              │  (Real-time DB)  │
-         │              └──────────────────┘
-         │                       │
-         │              ┌──────────────────┐
-         └─────────────▶│ Cloud Functions  │
-                        │ (XP/Badges/Push) │
-                        └──────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                        Flutter Mobile App                           │
+│  - Riverpod state management                                        │
+│  - 40+ screens with animations                                      │
+│  - Gamification (XP, levels, badges, streaks)                       │
+└─────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                    Firebase Cloud Functions                         │
+│  - personalizeTask()         → Traced + Evaluated                   │
+│  - generateDailyInsight()    → Traced + Evaluated                   │
+│  - getSmartRecommendation()  → Traced + Evaluated                   │
+│  - coachDecides()            → Traced + Evaluated                   │
+│  - generateWeeklyPlan()      → Agentic (tool use)                   │
+│  - weeklyReplanningCheck()   → Scheduled (adaptive)                 │
+│  - generateExperimentReport()→ Opik metrics analysis                │
+└─────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                         Opik Platform                               │
+│  - Traces with full context                                         │
+│  - Feedback scores (LLM-as-Judge)                                   │
+│  - Experiment tracking                                              │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Tech Stack
-- **Frontend**: Flutter 3.16, Riverpod, Google Fonts
+- **Frontend**: Flutter 3.16+, Riverpod, flutter_animate
 - **Backend**: Firebase (Auth, Firestore, Functions, FCM)
-- **CI/CD**: GitHub Actions
-- **Testing**: Flutter Test, Jest
+- **AI**: OpenAI GPT-4o-mini
+- **Observability**: Opik (tracing, evaluation, experiments)
+
+---
 
 ## Key Metrics
 
-| Metric | Target | How Measured |
-|--------|--------|--------------|
-| Daily Active Users | Track | Analytics events |
+| Metric | Target | Measurement |
+|--------|--------|-------------|
 | Task Completion Rate | >70% | completed / shown |
-| Audacity Attempt Rate | >30% | attempts / views |
-| Streak Retention | 7+ days | User streaks |
-| XP Velocity | Increasing | XP per user per week |
+| Opik Evaluation Avg | >4.0/5 | LLM-as-Judge scores |
+| Coach Decides Usage | >20% | decisions / sessions |
+| Adaptive Adjustments | Tracked | simplify/increase ratio |
 
-## Demo Flow (60s)
+---
 
-1. **Sign Up & Onboard** (10s) - Quick personalization
-2. **Daily Task** (20s) - Complete task, earn XP, see celebration
-3. **Audacity Script** (15s) - Show script, template, outcomes
-4. **Joy Ritual** (10s) - Select and view ritual
-5. **Progress** (5s) - XP, level, badges
+## Demo Flow (90 seconds)
+
+| Scene | Duration | Focus |
+|-------|----------|-------|
+| Hook | 5s | "90% of resolutions fail" |
+| Onboarding | 15s | Aspiration-based personalization |
+| Daily Task | 20s | AI-recommended micro-task + XP |
+| Coach Decides | 20s | Autonomous AI decision with reasoning |
+| Audacity Scripts | 10s | Bold asks with templates |
+| Opik Dashboard | 15s | Traces + evaluation scores |
+| Wrap-up | 5s | Progress screen |
+
+---
 
 ## What Makes Us Different
 
-1. **Not just tracking, but teaching** - We provide the words and actions
-2. **Failure is rewarded** - XP for trying, not just succeeding
-3. **Micro-commitment** - 5-10 minutes daily is enough
-4. **Gamified resilience** - Setbacks have a supportive flow
+| Traditional Habit Apps | Easy Mode |
+|------------------------|-----------|
+| Track habits | AI picks habits for you |
+| Static difficulty | Adaptive difficulty |
+| No reasoning | Full transparency ("Why this task?") |
+| No observability | LLM-as-Judge on every response |
+| Hope prompts work | Data-driven prompt improvement |
 
-## Future Roadmap
+---
 
-1. **LLM Personalization** - AI-tailored scripts based on context
-2. **Community Challenges** - Social accountability features
-3. **Voice Recording** - Practice audacity scripts with audio
-4. **Progress Insights** - Weekly reports and patterns
-5. **Coach Mode** - Premium 1:1 AI coaching sessions
+## Links
+
+| Resource | URL |
+|----------|-----|
+| Demo Video | [YouTube](#) |
+| Live App | [easymode.app](#) |
+| Opik Dashboard | [Comet](#) |
+| GitHub | [Repository](#) |
+
+---
 
 ## Team
 
-Built with passion for helping people live more boldly.
+- **[Your Name]** - Solo Developer
 
-## Try It
+---
 
-- **Demo Video**: [Link to video]
-- **APK Download**: [Link to APK]
-- **GitHub**: [Link to repo]
+## Cost Estimate
+
+| Operation | Cost |
+|-----------|------|
+| Per user per day | ~$0.005 |
+| Per 1,000 users/month | ~$150 |
+
+Using GPT-4o-mini for cost-effectiveness while maintaining quality.
 
 ---
 

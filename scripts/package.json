@@ -1,0 +1,10 @@
+{
+  "devDependencies": {
+    "dotenv": "^17.2.4"
+  },
+  "dependencies": {
+    "openai": "^6.18.0",
+    "opik": "^1.10.8",
+    "opik-openai": "^1.10.8"
+  }
+}
