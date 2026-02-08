@@ -16,6 +16,87 @@ admin.initializeApp();
 
 const db = admin.firestore();
 
+// ============ MEMORY SYSTEM FOR RAG ============
+
+interface MemoryEntry {
+  id: string;
+  userId: string;
+  type: 'conversation' | 'achievement' | 'setback' | 'insight' | 'preference';
+  content: string;
+  embedding?: number[];
+  metadata: Record<string, unknown>;
+  importance: number; // 1-5, for retrieval ranking
+  createdAt: admin.firestore.Timestamp;
+}
+
+/**
+ * Store a memory entry for a user
+ * Used for RAG - retrieval augmented generation
+ */
+async function storeMemory(
+  userId: string,
+  type: MemoryEntry['type'],
+  content: string,
+  metadata: Record<string, unknown> = {},
+  importance: number = 3
+): Promise<string> {
+  const memoryRef = db.collection('users').doc(userId).collection('memories').doc();
+  
+  await memoryRef.set({
+    userId,
+    type,
+    content,
+    metadata,
+    importance,
+    createdAt: admin.firestore.Timestamp.now(),
+  });
+
+  return memoryRef.id;
+}
+
+/**
+ * Retrieve relevant memories for context (simple keyword-based for MVP)
+ * In production, use vector embeddings for semantic search
+ */
+async function retrieveRelevantMemories(
+  userId: string,
+  query: string,
+  limit: number = 5
+): Promise<MemoryEntry[]> {
+  // Get recent memories
+  const recentSnapshot = await db
+    .collection('users')
+    .doc(userId)
+    .collection('memories')
+    .orderBy('createdAt', 'desc')
+    .limit(20)
+    .get();
+
+  if (recentSnapshot.empty) {
+    return [];
+  }
+
+  // Simple relevance scoring based on keyword overlap
+  const queryWords = query.toLowerCase().split(/\s+/);
+  const scoredMemories = recentSnapshot.docs.map((doc) => {
+    const data = doc.data() as MemoryEntry;
+    const contentWords = data.content.toLowerCase().split(/\s+/);
+    
+    // Calculate overlap score
+    const overlap = queryWords.filter((w) => contentWords.includes(w)).length;
+    const recencyBonus = (Date.now() - data.createdAt.toMillis()) < 86400000 ? 2 : 0; // 24hr recency boost
+    const score = overlap + (data.importance * 0.5) + recencyBonus;
+    
+    return { ...data, id: doc.id, score };
+  });
+
+  // Sort by score and return top results
+  return scoredMemories
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map(({ score: _score, ...memory }) => memory);
+}
+
 // Constants
 const XP_TASK_COMPLETE = 100;
 const XP_AUDACITY_ATTEMPT = 200;
@@ -2118,6 +2199,775 @@ export const generateExperimentReport = functions.https.onCall(async (data, cont
       'internal',
       `Failed to generate experiment report: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
+  }
+});
+
+// ============ CONVERSATIONAL AI CHAT COACH ============
+
+interface ChatMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp?: string;
+}
+
+interface SelfReflectionResult {
+  originalResponse: string;
+  critique: string;
+  improvedResponse: string;
+  improvementsMade: string[];
+  confidenceScore: number;
+}
+
+/**
+ * Self-reflection loop - Agent critiques and improves its own response
+ * Implements Chain-of-Thought reasoning with self-evaluation
+ */
+async function selfReflect(
+  openai: OpenAI,
+  originalPrompt: string,
+  originalResponse: string,
+  userContext: Record<string, unknown>
+): Promise<SelfReflectionResult> {
+  const critiquePrompt = `You are an AI quality evaluator for a life coaching app called Easy Mode.
+
+ORIGINAL USER MESSAGE:
+${originalPrompt}
+
+AI COACH'S RESPONSE:
+${originalResponse}
+
+USER CONTEXT:
+${JSON.stringify(userContext, null, 2)}
+
+Critically evaluate this response:
+1. Is it specific enough to be actionable?
+2. Does it acknowledge the user's current state/feelings?
+3. Is the tone warm but not patronizing?
+4. Does it align with Easy Mode's principles (Action, Audacity, Enjoyment)?
+5. Could anything be misinterpreted negatively?
+
+Respond in JSON:
+{
+  "issues": ["List of specific issues found, or empty array if none"],
+  "score": 1-5,
+  "shouldImprove": true/false
+}`;
+
+  const critiqueResponse = await openai.chat.completions.create({
+    model: 'gpt-4o-mini',
+    messages: [
+      { role: 'system', content: 'You are a critical evaluator. Be honest and specific.' },
+      { role: 'user', content: critiquePrompt }
+    ],
+    temperature: 0.3,
+    max_tokens: 300,
+    response_format: { type: 'json_object' }
+  });
+
+  const critique = JSON.parse(critiqueResponse.choices[0]?.message?.content || '{}');
+
+  // If response is good enough, return original
+  if (!critique.shouldImprove || critique.score >= 4) {
+    return {
+      originalResponse,
+      critique: 'Response meets quality standards',
+      improvedResponse: originalResponse,
+      improvementsMade: [],
+      confidenceScore: critique.score || 4,
+    };
+  }
+
+  // Generate improved response
+  const improvePrompt = `You are Easy Mode, an AI life coach. Your previous response had these issues:
+${critique.issues.join('\n- ')}
+
+ORIGINAL USER MESSAGE:
+${originalPrompt}
+
+YOUR PREVIOUS RESPONSE:
+${originalResponse}
+
+USER CONTEXT:
+${JSON.stringify(userContext, null, 2)}
+
+Write an IMPROVED response that:
+- Fixes all identified issues
+- Maintains warmth and encouragement
+- Is specific and actionable
+- Stays concise (2-4 sentences max)
+
+Respond with ONLY the improved message, no explanations.`;
+
+  const improvedResponse = await openai.chat.completions.create({
+    model: 'gpt-4o-mini',
+    messages: [
+      { role: 'system', content: 'You are Easy Mode, a warm and direct AI life coach.' },
+      { role: 'user', content: improvePrompt }
+    ],
+    temperature: 0.7,
+    max_tokens: 200,
+  });
+
+  return {
+    originalResponse,
+    critique: critique.issues.join('; '),
+    improvedResponse: improvedResponse.choices[0]?.message?.content || originalResponse,
+    improvementsMade: critique.issues,
+    confidenceScore: Math.min(critique.score + 1, 5),
+  };
+}
+
+/**
+ * AI CHAT COACH - Conversational interface with memory (RAG)
+ * 
+ * Features:
+ * - Retrieves relevant past conversations for context
+ * - Self-reflection loop for quality improvement
+ * - Stores important interactions as memories
+ * - Multi-turn conversation support
+ */
+export const chatWithCoach = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError(
+      'unauthenticated',
+      'Must be authenticated to chat with coach.'
+    );
+  }
+
+  const userId = context.auth.uid;
+  const { message, conversationHistory = [], enableSelfReflection = true } = data;
+
+  if (!message || typeof message !== 'string') {
+    throw new functions.https.HttpsError(
+      'invalid-argument',
+      'Message is required.'
+    );
+  }
+
+  // Create Opik trace
+  const trace = createTrace({
+    name: 'chat_with_coach',
+    userId,
+    functionName: 'chatWithCoach',
+    input: { message, historyLength: conversationHistory.length },
+    tags: ['chat', 'conversational'],
+  });
+
+  try {
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      throw new functions.https.HttpsError(
+        'failed-precondition',
+        'OpenAI API key not configured.'
+      );
+    }
+
+    // Get user data
+    const userDoc = await db.collection('users').doc(userId).get();
+    const userData = userDoc.exists ? userDoc.data()! : {};
+
+    // RETRIEVAL: Get relevant memories for context (RAG)
+    const relevantMemories = await retrieveRelevantMemories(userId, message, 5);
+    const memoryContext = relevantMemories.length > 0
+      ? `\n\nRELEVANT PAST CONTEXT:\n${relevantMemories.map((m) => `- [${m.type}] ${m.content}`).join('\n')}`
+      : '';
+
+    // Build conversation context
+    const recentHistory = conversationHistory.slice(-6) as ChatMessage[]; // Last 3 exchanges
+
+    const openai = getTrackedOpenAI(apiKey, {
+      userId,
+      feature: 'chat_coach',
+    });
+
+    const systemPrompt = `You are Easy Mode, an AI life coach focused on building confidence through Action, Audacity, and Enjoyment.
+
+ABOUT THE USER:
+- Name: ${userData.name || 'Friend'}
+- Level: ${userData.level || 1}
+- Current streak: ${userData.streak || 0} days
+- Goal: ${userData.profile?.goal || 'Build confidence'}
+- Challenge: ${userData.profile?.pain || 'Getting started'}
+${memoryContext}
+
+YOUR PERSONALITY:
+- Warm and encouraging, like a supportive friend
+- Direct and practical - no fluff
+- You celebrate small wins genuinely
+- You gently challenge comfort zones when appropriate
+- You remember past conversations (shown in RELEVANT PAST CONTEXT)
+
+GUIDELINES:
+- Keep responses concise (2-4 sentences unless asked for more)
+- Be specific and actionable when giving advice
+- Reference past context when relevant to show you remember them
+- If they share something significant, acknowledge it
+- End with a question or gentle nudge when appropriate`;
+
+    const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
+      { role: 'system', content: systemPrompt },
+      ...recentHistory.map((m) => ({
+        role: m.role as 'user' | 'assistant',
+        content: m.content,
+      })),
+      { role: 'user', content: message },
+    ];
+
+    // Generate initial response
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages,
+      temperature: 0.8,
+      max_tokens: 300,
+    });
+
+    let assistantMessage = response.choices[0]?.message?.content || '';
+    let selfReflectionResult: SelfReflectionResult | null = null;
+
+    // SELF-REFLECTION: Evaluate and improve response if needed
+    if (enableSelfReflection && assistantMessage) {
+      const rawOpenai = new OpenAI({ apiKey });
+      selfReflectionResult = await selfReflect(
+        rawOpenai,
+        message,
+        assistantMessage,
+        {
+          name: userData.name,
+          level: userData.level,
+          streak: userData.streak,
+          goal: userData.profile?.goal,
+          pain: userData.profile?.pain,
+        }
+      );
+      assistantMessage = selfReflectionResult.improvedResponse;
+    }
+
+    // MEMORY: Store significant interactions
+    const shouldStore = await shouldStoreAsMemory(message, assistantMessage);
+    if (shouldStore.store) {
+      await storeMemory(
+        userId,
+        shouldStore.type as MemoryEntry['type'],
+        `User: "${message.substring(0, 200)}..." Coach response about: ${shouldStore.summary}`,
+        { originalMessage: message },
+        shouldStore.importance
+      );
+    }
+
+    // Run evaluations
+    const rawOpenai = new OpenAI({ apiKey });
+    const evaluationScores = await runEvaluations(rawOpenai, [
+      {
+        config: EVALUATION_PROMPTS.engagementPotential,
+        variables: {
+          response: assistantMessage,
+          context: JSON.stringify({ message, userData }),
+        },
+      },
+      {
+        config: EVALUATION_PROMPTS.specificityScore,
+        variables: { response: assistantMessage },
+      },
+      {
+        config: EVALUATION_PROMPTS.safetyScore,
+        variables: { response: assistantMessage },
+      },
+    ]);
+
+    // End trace
+    await endTrace(trace, {
+      response: assistantMessage,
+      selfReflection: selfReflectionResult ? {
+        wasImproved: (selfReflectionResult.improvementsMade?.length ?? 0) > 0,
+        improvements: selfReflectionResult.improvementsMade,
+      } : null,
+      memoriesRetrieved: relevantMemories.length,
+      memoryStored: shouldStore.store,
+    }, evaluationScores);
+
+    // Log analytics
+    await db.collection('analytics').add({
+      event: 'chat_with_coach',
+      userId,
+      messageLength: message.length,
+      responseLength: assistantMessage.length,
+      memoriesRetrieved: relevantMemories.length,
+      selfReflectionUsed: enableSelfReflection,
+      wasImproved: (selfReflectionResult?.improvementsMade?.length ?? 0) > 0,
+      evaluationScores: evaluationScores.reduce((acc, s) => ({ ...acc, [s.name]: s.value }), {}),
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    // Flush Opik data
+    await openai.flush();
+    await flushOpik();
+
+    return {
+      success: true,
+      message: assistantMessage,
+      metadata: {
+        memoriesUsed: relevantMemories.length,
+        selfReflection: selfReflectionResult ? {
+          wasImproved: (selfReflectionResult.improvementsMade?.length ?? 0) > 0,
+          confidenceScore: selfReflectionResult.confidenceScore,
+        } : null,
+      },
+    };
+
+  } catch (error) {
+    console.error('[Chat Coach] Error:', error);
+
+    await endTrace(trace, {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      success: false,
+    });
+    await flushOpik();
+
+    return {
+      success: false,
+      message: "I'm having trouble right now. Take a breath, and remember: small steps forward are still progress.",
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+});
+
+/**
+ * Determine if a conversation should be stored as a memory
+ */
+async function shouldStoreAsMemory(
+  userMessage: string,
+  _assistantResponse: string
+): Promise<{ store: boolean; type: string; summary: string; importance: number }> {
+  // Keywords that indicate memorable content
+  const achievementKeywords = ['did it', 'completed', 'finished', 'achieved', 'won', 'succeeded', 'proud'];
+  const setbackKeywords = ['failed', 'couldn\'t', 'struggled', 'hard time', 'difficult', 'anxious', 'scared'];
+  const insightKeywords = ['realized', 'learned', 'understand now', 'figured out', 'noticed'];
+  const preferenceKeywords = ['i like', 'i prefer', 'i hate', 'i love', 'works for me', 'doesn\'t work'];
+
+  const lowerMessage = userMessage.toLowerCase();
+
+  if (achievementKeywords.some((k) => lowerMessage.includes(k))) {
+    return { store: true, type: 'achievement', summary: 'User shared an accomplishment', importance: 4 };
+  }
+  if (setbackKeywords.some((k) => lowerMessage.includes(k))) {
+    return { store: true, type: 'setback', summary: 'User shared a challenge', importance: 4 };
+  }
+  if (insightKeywords.some((k) => lowerMessage.includes(k))) {
+    return { store: true, type: 'insight', summary: 'User had a realization', importance: 3 };
+  }
+  if (preferenceKeywords.some((k) => lowerMessage.includes(k))) {
+    return { store: true, type: 'preference', summary: 'User expressed a preference', importance: 3 };
+  }
+
+  // Store longer messages more often (likely meaningful)
+  if (userMessage.length > 150) {
+    return { store: true, type: 'conversation', summary: 'Detailed conversation', importance: 2 };
+  }
+
+  return { store: false, type: '', summary: '', importance: 0 };
+}
+
+// ============ PROACTIVE AI NOTIFICATIONS ============
+
+/**
+ * Generate AI-powered personalized push notification content
+ * Called by scheduled function or triggered by user inactivity
+ */
+export const generateProactiveNudge = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError(
+      'unauthenticated',
+      'Must be authenticated.'
+    );
+  }
+
+  const userId = context.auth.uid;
+  const { nudgeType = 'daily' } = data; // daily, streak_at_risk, comeback, celebration
+
+  try {
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      throw new functions.https.HttpsError(
+        'failed-precondition',
+        'OpenAI API key not configured.'
+      );
+    }
+
+    // Get user data
+    const userDoc = await db.collection('users').doc(userId).get();
+    const userData = userDoc.exists ? userDoc.data()! : {};
+
+    // Get recent activity
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    
+    const recentTasks = await db
+      .collection('users')
+      .doc(userId)
+      .collection('userTasks')
+      .where('date', '>=', sevenDaysAgo.toISOString())
+      .get();
+
+    const completedCount = recentTasks.docs.filter((d) => d.data().completed).length;
+    
+    // Calculate days since last activity
+    const lastActivity = userData.lastActivity?.toDate() || new Date(0);
+    const daysSinceActivity = Math.floor((Date.now() - lastActivity.getTime()) / 86400000);
+
+    const openai = new OpenAI({ apiKey });
+
+    const contextPrompt = `Generate a personalized push notification for this user:
+
+USER:
+- Name: ${userData.name || 'Friend'}
+- Level: ${userData.level || 1}
+- Current streak: ${userData.streak || 0} days
+- Tasks completed this week: ${completedCount}
+- Days since last activity: ${daysSinceActivity}
+- Goal: ${userData.profile?.goal || 'Build confidence'}
+
+NUDGE TYPE: ${nudgeType}
+- daily: Morning motivation to start the day
+- streak_at_risk: User hasn't logged in today, streak might break
+- comeback: User hasn't been active for 2+ days
+- celebration: User hit a milestone or achievement
+
+TIME: ${new Date().toLocaleTimeString()} on ${new Date().toLocaleDateString('en-US', { weekday: 'long' })}
+
+Generate a notification that:
+- Is personal and uses their name if available
+- Is brief (title: 5-8 words, body: 1-2 short sentences)
+- Creates gentle urgency without guilt-tripping
+- Feels like a supportive friend, not a nagging app
+- Aligns with Easy Mode's warm, encouraging tone
+
+Respond in JSON:
+{
+  "title": "Notification title",
+  "body": "Notification body text",
+  "actionText": "Button text like 'Start' or 'Let's go'"
+}`;
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: 'You are generating push notifications for a life coaching app. Be warm, brief, and motivating.' },
+        { role: 'user', content: contextPrompt }
+      ],
+      temperature: 0.8,
+      max_tokens: 150,
+      response_format: { type: 'json_object' }
+    });
+
+    const notification = JSON.parse(response.choices[0]?.message?.content || '{}');
+
+    // Log analytics
+    await db.collection('analytics').add({
+      event: 'proactive_nudge_generated',
+      userId,
+      nudgeType,
+      daysSinceActivity,
+      streak: userData.streak || 0,
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    return {
+      success: true,
+      notification: {
+        title: notification.title || 'Easy Mode Moment',
+        body: notification.body || 'A small step forward is waiting for you.',
+        actionText: notification.actionText || 'Start',
+      },
+      context: {
+        nudgeType,
+        daysSinceActivity,
+        streak: userData.streak || 0,
+      },
+    };
+
+  } catch (error) {
+    console.error('[Proactive Nudge] Error:', error);
+    
+    // Return fallback notification
+    return {
+      success: false,
+      notification: {
+        title: 'Your Easy Mode moment',
+        body: 'A small step forward is all it takes.',
+        actionText: 'Start',
+      },
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+});
+
+/**
+ * Scheduled function to send AI-personalized notifications
+ * Runs multiple times per day to catch different timezones and contexts
+ */
+export const sendAINotifications = functions.pubsub
+  .schedule('0 9,14,19 * * *') // 9 AM, 2 PM, 7 PM UTC
+  .timeZone('UTC')
+  .onRun(async (_context) => {
+    console.log('[AI Notifications] Starting scheduled run...');
+
+    try {
+      const apiKey = process.env.OPENAI_API_KEY;
+      if (!apiKey) {
+        console.error('[AI Notifications] OpenAI API key not configured');
+        return null;
+      }
+
+      // Get users who have notifications enabled
+      const usersSnapshot = await db.collection('users')
+        .where('notificationsEnabled', '==', true)
+        .get();
+
+      const openai = new OpenAI({ apiKey });
+      const messaging = admin.messaging();
+      let sentCount = 0;
+
+      for (const userDoc of usersSnapshot.docs) {
+        const userData = userDoc.data();
+        if (!userData.fcmToken) continue;
+
+        // Determine nudge type based on user state
+        const lastActivity = userData.lastActivity?.toDate() || new Date(0);
+        const daysSinceActivity = Math.floor((Date.now() - lastActivity.getTime()) / 86400000);
+        const streak = userData.streak || 0;
+
+        let nudgeType = 'daily';
+        if (daysSinceActivity >= 2) {
+          nudgeType = 'comeback';
+        } else if (daysSinceActivity === 1 && streak > 0) {
+          nudgeType = 'streak_at_risk';
+        }
+
+        // Generate personalized notification
+        try {
+          const prompt = `Generate a brief, warm push notification:
+User: ${userData.name || 'Friend'}, Level ${userData.level || 1}, ${streak} day streak
+Last active: ${daysSinceActivity} days ago
+Nudge type: ${nudgeType}
+
+JSON format: {"title": "...", "body": "..."}`;
+
+          const response = await openai.chat.completions.create({
+            model: 'gpt-4o-mini',
+            messages: [
+              { role: 'system', content: 'Generate brief, warm push notifications. Title: 5-8 words. Body: 1 short sentence.' },
+              { role: 'user', content: prompt }
+            ],
+            temperature: 0.8,
+            max_tokens: 80,
+            response_format: { type: 'json_object' }
+          });
+
+          const notification = JSON.parse(response.choices[0]?.message?.content || '{}');
+
+          await messaging.send({
+            notification: {
+              title: notification.title || 'Easy Mode',
+              body: notification.body || 'Your daily moment awaits.',
+            },
+            token: userData.fcmToken,
+          });
+
+          sentCount++;
+        } catch (err) {
+          console.error(`[AI Notifications] Failed for user ${userDoc.id}:`, err);
+        }
+      }
+
+      console.log(`[AI Notifications] Sent ${sentCount} personalized notifications`);
+      return { sentCount };
+
+    } catch (error) {
+      console.error('[AI Notifications] Error:', error);
+      throw error;
+    }
+  });
+
+// ============ RESILIENCE AGENT ============
+
+/**
+ * Resilience Agent - Detects when user is struggling and provides support
+ * Triggered when user reports a setback or shows signs of disengagement
+ */
+export const triggerResilienceSupport = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError(
+      'unauthenticated',
+      'Must be authenticated.'
+    );
+  }
+
+  const userId = context.auth.uid;
+  const { triggerType, setbackDetails } = data;
+  // triggerType: 'task_failed', 'streak_broken', 'user_reported', 'inactivity'
+
+  const trace = createTrace({
+    name: 'resilience_support',
+    userId,
+    functionName: 'triggerResilienceSupport',
+    input: { triggerType, setbackDetails },
+    tags: ['resilience', 'support', triggerType],
+  });
+
+  try {
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      throw new functions.https.HttpsError(
+        'failed-precondition',
+        'OpenAI API key not configured.'
+      );
+    }
+
+    // Get user data and history
+    const userDoc = await db.collection('users').doc(userId).get();
+    const userData = userDoc.exists ? userDoc.data()! : {};
+
+    // Get recent memories for context
+    const relevantMemories = await retrieveRelevantMemories(
+      userId,
+      setbackDetails || 'struggling feeling stuck difficult',
+      3
+    );
+
+    // Get past successes to remind user
+    const pastSuccesses = await db
+      .collection('users')
+      .doc(userId)
+      .collection('userTasks')
+      .where('completed', '==', true)
+      .orderBy('completedAt', 'desc')
+      .limit(5)
+      .get();
+
+    const successCount = pastSuccesses.size;
+
+    const openai = getTrackedOpenAI(apiKey, {
+      userId,
+      feature: 'resilience_support',
+    });
+
+    const systemPrompt = `You are the Easy Mode Resilience Coach. A user is experiencing a setback or struggling. Your role is to:
+1. Validate their feelings without minimizing
+2. Reframe the setback as part of the growth process
+3. Remind them of past successes
+4. Offer ONE small, immediate action they can take
+5. Express genuine belief in their ability to bounce back
+
+Be warm, brief, and focus on building them back up without toxic positivity.`;
+
+    const contextPrompt = `USER CONTEXT:
+- Name: ${userData.name || 'Friend'}
+- Level: ${userData.level || 1}
+- Previous streak: ${userData.streak || 0} days
+- Total tasks completed: ${successCount}
+- Goal: ${userData.profile?.goal || 'Build confidence'}
+- Their challenge: ${userData.profile?.pain || 'Getting started'}
+
+TRIGGER: ${triggerType}
+${setbackDetails ? `WHAT THEY SHARED: "${setbackDetails}"` : ''}
+
+${relevantMemories.length > 0 ? `RELEVANT PAST CONTEXT:\n${relevantMemories.map((m) => `- ${m.content}`).join('\n')}` : ''}
+
+Provide resilience support. Respond in JSON:
+{
+  "validation": "1-2 sentences acknowledging their experience",
+  "reframe": "1-2 sentences reframing this as part of growth",
+  "reminder": "Brief reminder of their progress (reference ${successCount} completed tasks)",
+  "microAction": {
+    "title": "One tiny action they can do RIGHT NOW",
+    "description": "Why this helps (1 sentence)",
+    "timeMinutes": 2-5
+  },
+  "closingMessage": "Brief encouraging close (1 sentence)"
+}`;
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: contextPrompt }
+      ],
+      temperature: 0.7,
+      max_tokens: 400,
+      response_format: { type: 'json_object' }
+    });
+
+    const support = JSON.parse(response.choices[0]?.message?.content || '{}');
+
+    // Store this as a memory for future reference
+    await storeMemory(
+      userId,
+      'setback',
+      `User experienced ${triggerType}${setbackDetails ? `: "${setbackDetails.substring(0, 100)}"` : ''}. Provided resilience support.`,
+      { triggerType, supportProvided: true },
+      4
+    );
+
+    // End trace
+    await endTrace(trace, {
+      support,
+      successCount,
+      memoriesRetrieved: relevantMemories.length,
+    });
+
+    // Log analytics
+    await db.collection('analytics').add({
+      event: 'resilience_support_triggered',
+      userId,
+      triggerType,
+      pastSuccessCount: successCount,
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    // Flush Opik data
+    await openai.flush();
+    await flushOpik();
+
+    return {
+      success: true,
+      support: {
+        validation: support.validation,
+        reframe: support.reframe,
+        reminder: support.reminder,
+        microAction: support.microAction,
+        closingMessage: support.closingMessage,
+      },
+      context: {
+        totalSuccesses: successCount,
+        streak: userData.streak || 0,
+      },
+    };
+
+  } catch (error) {
+    console.error('[Resilience Support] Error:', error);
+
+    await endTrace(trace, {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      success: false,
+    });
+    await flushOpik();
+
+    // Return fallback support
+    return {
+      success: false,
+      support: {
+        validation: 'It\'s okay to have hard moments. This is part of the journey.',
+        reframe: 'Every setback is actually data about what works for you and what doesn\'t.',
+        reminder: 'You\'ve shown up before, and that counts for something.',
+        microAction: {
+          title: 'Take 3 deep breaths',
+          description: 'This helps reset your nervous system.',
+          timeMinutes: 1,
+        },
+        closingMessage: 'You\'re still here. That matters.',
+      },
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
   }
 });
 

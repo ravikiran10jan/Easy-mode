@@ -44,8 +44,8 @@ Easy Mode directly addresses the challenge of turning New Year's resolutions int
 |------------------|----------------------|
 | **Functionality** | Fully working Flutter app with Firebase backend, AI personalization, gamified progress |
 | **Real-world relevance** | Addresses the #1 problem with resolutions: they're too big. We break them into 5-min daily actions |
-| **Use of LLMs/Agents** | 6 AI-powered Cloud Functions with multi-step reasoning, tool use, and autonomous decision-making |
-| **Evaluation & observability** | Full Opik integration with LLM-as-Judge evaluations, experiment tracking, and adaptive learning |
+| **Use of LLMs/Agents** | 14 AI Cloud Functions with reasoning chains, RAG, tool use, self-reflection, and autonomous scheduling |
+| **Evaluation & observability** | Full Opik integration with LLM-as-Judge, experiment tracking, and adaptive learning |
 | **Goal Alignment** | XP system, streaks, badges, and weekly plans keep users engaged and progressing |
 
 ### Personal Growth & Learning
@@ -73,7 +73,8 @@ Easy Mode showcases exceptional Opik integration for AI evaluation and observabi
 
 | Opik Feature | Implementation |
 |--------------|----------------|
-| **Tracing** | All AI calls traced with full context (user, task, behavior patterns) |
+| **Tracing** | All 14 AI functions traced with full context (user, task, behavior patterns) |
+| **Auto-Tracking** | `trackOpenAI()` wrapper automatically captures all LLM calls |
 | **LLM-as-Judge** | 5 evaluation metrics scored automatically on every AI response |
 | **Experiment Tracking** | Prompt versions tracked with hashes for A/B testing |
 | **Feedback Scores** | Evaluation scores attached to traces for performance analysis |
@@ -90,7 +91,9 @@ Frontend                 Backend                    AI/ML
 Flutter 3.16+           Firebase Auth             OpenAI GPT-4o-mini
 Riverpod (State)        Cloud Firestore           Opik (Observability)
 flutter_animate         Cloud Functions (Node 20) LLM-as-Judge Evals
-confetti (Celebrations) Firebase Messaging (FCM)  Multi-step Agents
+confetti (Celebrations) Firebase Messaging (FCM)  RAG (Memory System)
+                                                  Self-Reflection Loop
+                                                  Multi-step Agents
 ```
 
 ### Architecture
@@ -100,7 +103,7 @@ easy_mode/
 ├── lib/                          # Flutter app
 │   ├── core/
 │   │   ├── services/
-│   │   │   ├── ai_service.dart   # Cloud Function calls
+│   │   │   ├── ai_service.dart   # Cloud Function calls (supports all 14 functions)
 │   │   │   ├── firestore_service.dart
 │   │   │   └── analytics_service.dart
 │   │   ├── models/               # Data models
@@ -115,7 +118,7 @@ easy_mode/
 │
 ├── functions/                    # Firebase Cloud Functions
 │   └── src/
-│       ├── index.ts              # 8 Cloud Functions
+│       ├── index.ts              # 14 Cloud Functions (AI + Triggers)
 │       └── opik.ts               # Opik integration module
 │
 └── scripts/                      # Utilities
@@ -126,7 +129,198 @@ easy_mode/
 
 ## AI Features & Agentic System
 
-### 1. Smart Task Recommendations
+Easy Mode implements a comprehensive AI architecture with **14 Cloud Functions**, featuring reasoning chains, autonomous decision-making, retrieval-augmented generation (RAG), and self-reflection loops.
+
+### AI Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         EASY MODE AI ARCHITECTURE                           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│   ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐ │
+│   │   MEMORY    │    │  REASONING  │    │   TOOLS     │    │ REFLECTION  │ │
+│   │    (RAG)    │    │   CHAINS    │    │  (Actions)  │    │   LOOP      │ │
+│   └──────┬──────┘    └──────┬──────┘    └──────┬──────┘    └──────┬──────┘ │
+│          │                  │                  │                  │        │
+│          └──────────────────┴──────────────────┴──────────────────┘        │
+│                                     │                                       │
+│                            ┌────────▼────────┐                              │
+│                            │   GPT-4o-mini   │                              │
+│                            └────────┬────────┘                              │
+│                                     │                                       │
+│                            ┌────────▼────────┐                              │
+│                            │      OPIK       │                              │
+│                            │  (Observability)│                              │
+│                            └────────┬────────┘                              │
+│                                     │                                       │
+│          ┌──────────────────────────┼──────────────────────────┐           │
+│          │                          │                          │           │
+│   ┌──────▼──────┐           ┌───────▼───────┐          ┌───────▼───────┐   │
+│   │   Tracing   │           │ LLM-as-Judge  │          │  Experiments  │   │
+│   │   & Spans   │           │  Evaluations  │          │   Tracking    │   │
+│   └─────────────┘           └───────────────┘          └───────────────┘   │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Cloud Functions (14 Total)
+
+| Function | Category | Description |
+|----------|----------|-------------|
+| `chatWithCoach` | **Conversational AI** | RAG-powered chat with memory + self-reflection |
+| `triggerResilienceSupport` | **Resilience Agent** | Detects struggles, provides structured support |
+| `generateProactiveNudge` | **Proactive AI** | Generates personalized push notification content |
+| `sendAINotifications` | **Autonomous** | Scheduled AI-personalized push notifications |
+| `coachDecides` | **Decision Agent** | Full-context autonomous task selection |
+| `generateWeeklyPlan` | **Planner Agent** | Multi-step planning with tool use |
+| `weeklyReplanningCheck` | **Adaptive Agent** | Scheduled difficulty adjustment |
+| `getSmartRecommendation` | **Hybrid AI** | Rules + AI task recommendation |
+| `personalizeTask` | **Personalization** | Context-aware task customization |
+| `generateDailyInsight` | **Insight Gen** | Daily AI coaching messages |
+| `generateExperimentReport` | **Analytics** | Prompt experiment comparison |
+| `onTaskComplete` | **Triggers** | XP award on completion |
+| `updateStreak` | **Triggers** | Streak tracking |
+| `sendDailyNudge` | **Scheduled** | Basic daily reminders |
+
+---
+
+### 1. Conversational AI with Memory (RAG)
+
+**Function:** `chatWithCoach`
+
+Full conversational interface with retrieval-augmented generation:
+
+```
+User Message → Retrieve Relevant Memories → Generate Response → Self-Reflect → Store Important Info
+```
+
+**Memory System:**
+- Stores: achievements, setbacks, insights, preferences
+- Retrieves: keyword-matched + recency-boosted memories
+- Location: `users/{uid}/memories` collection
+
+```typescript
+// Memory entry structure
+interface MemoryEntry {
+  type: 'conversation' | 'achievement' | 'setback' | 'insight' | 'preference';
+  content: string;
+  importance: 1-5;  // Affects retrieval ranking
+  createdAt: Timestamp;
+}
+
+// Retrieval for RAG
+const memories = await retrieveRelevantMemories(userId, userMessage, 5);
+// → Returns top 5 relevant memories for context injection
+```
+
+**Key Features:**
+- Remembers past conversations and achievements
+- Self-reflection loop improves response quality
+- Automatic importance-based memory storage
+
+---
+
+### 2. Self-Reflection Loop
+
+**Integrated in:** `chatWithCoach`
+
+The AI critiques and improves its own responses before returning them:
+
+```
+Generate Response → Critique (1-5 score) → If score < 4: Improve → Return best version
+```
+
+```typescript
+async function selfReflect(openai, originalPrompt, originalResponse, userContext) {
+  // Step 1: Critique the response
+  const critique = await openai.chat.completions.create({
+    messages: [{ role: 'user', content: critiquePrompt }],
+    response_format: { type: 'json_object' }
+  });
+  // → Returns: { issues: [...], score: 1-5, shouldImprove: bool }
+
+  // Step 2: If needed, generate improved version
+  if (critique.shouldImprove && critique.score < 4) {
+    const improved = await openai.chat.completions.create({...});
+    return { improvedResponse, confidenceScore: score + 1 };
+  }
+  
+  return { originalResponse, confidenceScore: score };
+}
+```
+
+**Evaluation Criteria:**
+- Is it specific enough to be actionable?
+- Does it acknowledge user's current state?
+- Is the tone warm but not patronizing?
+- Does it align with Action, Audacity, Enjoyment?
+
+---
+
+### 3. Resilience Agent
+
+**Function:** `triggerResilienceSupport`
+
+Specialized agent that activates when users are struggling:
+
+```
+Trigger (setback/streak broken) → Gather Context + Past Successes → Structured Support Response
+```
+
+**Trigger Types:**
+- `task_failed` - User couldn't complete a task
+- `streak_broken` - User lost their streak
+- `user_reported` - User explicitly shared difficulty
+- `inactivity` - User hasn't engaged for days
+
+**Response Structure:**
+```json
+{
+  "validation": "Acknowledges their experience without minimizing",
+  "reframe": "Reframes setback as part of growth",
+  "reminder": "References their past successes",
+  "microAction": {
+    "title": "Take 3 deep breaths",
+    "description": "Resets nervous system",
+    "timeMinutes": 1
+  },
+  "closingMessage": "Brief encouragement"
+}
+```
+
+---
+
+### 4. Proactive AI Notifications
+
+**Functions:** `generateProactiveNudge`, `sendAINotifications`
+
+AI generates personalized push notification content based on user state:
+
+**Nudge Types:**
+| Type | Trigger | Example |
+|------|---------|---------|
+| `daily` | Morning check-in | "Good morning, Sarah! Your 5-day streak is glowing." |
+| `streak_at_risk` | No activity today, streak > 0 | "Your streak is counting on you today!" |
+| `comeback` | 2+ days inactive | "We missed you! One small step?" |
+| `celebration` | Hit milestone | "Level 5! You're building something real." |
+
+**Schedule:** Runs at 9 AM, 2 PM, 7 PM UTC
+
+```typescript
+// Each notification is uniquely generated
+const notification = await openai.chat.completions.create({
+  messages: [{
+    content: `Generate notification for: ${userName}, ${streak} day streak, ${daysSinceActivity} days inactive...`
+  }],
+  response_format: { type: 'json_object' }
+});
+// → { title: "...", body: "...", actionText: "Start" }
+```
+
+---
+
+### 5. Smart Task Recommendations
 
 **Function:** `getSmartRecommendation`
 
@@ -145,7 +339,9 @@ User Behavior Analysis     Rule-Based Scoring        AI Selection
 - Traces include full behavior pattern context
 - LLM-as-Judge evaluates: `task_relevance`, `specificity`, `engagement_potential`
 
-### 2. Coach Decides (Autonomous Decision-Making)
+---
+
+### 6. Coach Decides (Autonomous Decision-Making)
 
 **Function:** `coachDecides`
 
@@ -166,7 +362,9 @@ When users tap "Let Coach Decide," the AI makes a decision FOR them:
 - Evaluates: `task_relevance`, `decision_confidence`, `engagement_potential`
 - Evaluation scores stored in analytics for performance tracking
 
-### 3. Planner Agent (Multi-Step Reasoning)
+---
+
+### 7. Planner Agent (Multi-Step Reasoning with Tool Use)
 
 **Function:** `generateWeeklyPlan`
 
@@ -187,7 +385,9 @@ const PLANNER_TOOLS = [
 4. Adjust difficulty based on completion rate (tool call)
 5. Store reasoning for transparency
 
-### 4. Adaptive Replanning (Scheduled Agent)
+---
+
+### 8. Adaptive Replanning (Scheduled Agent)
 
 **Function:** `weeklyReplanningCheck` (Runs every Sunday 8 PM UTC)
 
@@ -200,27 +400,6 @@ Completion Rate     Action               Next Week
 ```
 
 The system automatically adjusts without user intervention, storing adjustment reasoning in Firestore.
-
-### 5. Task Personalization
-
-**Function:** `personalizeTask`
-
-Takes base task templates and personalizes them based on:
-- User name, streak, level
-- Goal and pain points
-- Daily time budget
-
-Returns: personalized description, coach tip, motivational note
-
-### 6. Daily AI Insights
-
-**Function:** `generateDailyInsight`
-
-Generates personalized daily coaching messages with:
-- Contextual greeting
-- Progress insight based on 7-day activity
-- Focus suggestion for today
-- Encouragement message
 
 ---
 
@@ -467,6 +646,7 @@ See [docs/OPIK_INTEGRATION.md](docs/OPIK_INTEGRATION.md) for detailed test resul
 | `users/{uid}/userScripts` | Audacity script attempts |
 | `users/{uid}/userRituals` | Ritual completions |
 | `users/{uid}/weeklyPlans` | AI-generated weekly plans |
+| `users/{uid}/memories` | **RAG memory store** (achievements, setbacks, insights, preferences) |
 | `tasks` | Task templates |
 | `scripts` | Audacity scripts |
 | `rituals` | Joy rituals |
@@ -480,14 +660,18 @@ See [docs/OPIK_INTEGRATION.md](docs/OPIK_INTEGRATION.md) for detailed test resul
 
 ### vs. Generic Habit Trackers
 - **AI Personalization**: Tasks adapt to your behavior patterns
-- **Agentic Planning**: The coach creates your weekly plan
+- **Agentic Planning**: The coach creates your weekly plan autonomously
 - **Coach Decides**: Let AI pick for you when you're overwhelmed
+- **Conversational Memory**: The AI remembers your past achievements and struggles
 
 ### vs. Other AI Apps
-- **Full Observability**: Every AI decision is traced and evaluated
-- **LLM-as-Judge**: Automatic quality scoring on all responses
-- **Experiment Tracking**: Prompt versions compared with data
-- **Adaptive Learning**: System improves based on evaluation metrics
+- **Full Observability**: Every AI decision is traced and evaluated with Opik
+- **LLM-as-Judge**: Automatic quality scoring on all 14 AI functions
+- **Self-Reflection**: AI critiques and improves its own outputs before responding
+- **RAG Memory System**: Retrieval-augmented generation for personalized context
+- **Experiment Tracking**: Prompt versions compared with data-driven insights
+- **Adaptive Learning**: System autonomously adjusts difficulty without user input
+- **Resilience Agent**: Specialized support when users are struggling
 
 ---
 
@@ -499,9 +683,12 @@ See [docs/OPIK_INTEGRATION.md](docs/OPIK_INTEGRATION.md) for detailed test resul
 | Daily Insight | gpt-4o-mini | ~$0.0004 |
 | Smart Recommendation | gpt-4o-mini | ~$0.0008 |
 | Coach Decides | gpt-4o-mini | ~$0.001 |
+| Chat with Coach (RAG + Reflection) | gpt-4o-mini | ~$0.002 |
+| Resilience Support | gpt-4o-mini | ~$0.001 |
+| Proactive Nudge | gpt-4o-mini | ~$0.0003 |
 | Weekly Plan (with tools) | gpt-4o-mini | ~$0.003 |
 | LLM-as-Judge (per eval) | gpt-4o-mini | ~$0.0002 |
-| **Per user per day** | | **~$0.005** |
+| **Per user per day** | | **~$0.008** |
 
 ---
 

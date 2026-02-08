@@ -789,3 +789,321 @@ class WeeklySummaryResponse {
       );
 }
 
+// ============ AI CHAT COACH MODELS ============
+
+/// Chat message for conversation history
+class ChatMessage {
+  final String role; // 'user' or 'assistant'
+  final String content;
+  final DateTime timestamp;
+
+  ChatMessage({
+    required this.role,
+    required this.content,
+    DateTime? timestamp,
+  }) : timestamp = timestamp ?? DateTime.now();
+
+  Map<String, dynamic> toMap() => {
+        'role': role,
+        'content': content,
+        'timestamp': timestamp.toIso8601String(),
+      };
+
+  factory ChatMessage.fromMap(Map<String, dynamic> map) => ChatMessage(
+        role: map['role'] as String? ?? 'user',
+        content: map['content'] as String? ?? '',
+        timestamp: map['timestamp'] != null
+            ? DateTime.tryParse(map['timestamp'] as String) ?? DateTime.now()
+            : DateTime.now(),
+      );
+}
+
+/// Metadata from chat response
+class ChatMetadata {
+  final int memoriesUsed;
+  final bool wasImproved;
+  final int confidenceScore;
+
+  ChatMetadata({
+    required this.memoriesUsed,
+    required this.wasImproved,
+    required this.confidenceScore,
+  });
+
+  factory ChatMetadata.fromMap(Map<String, dynamic> map) {
+    final selfReflection = map['selfReflection'] as Map<String, dynamic>?;
+    return ChatMetadata(
+      memoriesUsed: map['memoriesUsed'] as int? ?? 0,
+      wasImproved: selfReflection?['wasImproved'] as bool? ?? false,
+      confidenceScore: selfReflection?['confidenceScore'] as int? ?? 4,
+    );
+  }
+}
+
+/// Response from AI chat coach
+class ChatWithCoachResponse {
+  final bool success;
+  final String message;
+  final ChatMetadata? metadata;
+  final String? error;
+
+  ChatWithCoachResponse({
+    required this.success,
+    required this.message,
+    this.metadata,
+    this.error,
+  });
+
+  factory ChatWithCoachResponse.fromMap(Map<String, dynamic> map) =>
+      ChatWithCoachResponse(
+        success: map['success'] as bool? ?? false,
+        message: map['message'] as String? ?? '',
+        metadata: map['metadata'] != null
+            ? ChatMetadata.fromMap(map['metadata'] as Map<String, dynamic>)
+            : null,
+        error: map['error'] as String?,
+      );
+}
+
+// ============ RESILIENCE SUPPORT MODELS ============
+
+/// Micro action from resilience support
+class ResilienceMicroAction {
+  final String title;
+  final String description;
+  final int timeMinutes;
+
+  ResilienceMicroAction({
+    required this.title,
+    required this.description,
+    required this.timeMinutes,
+  });
+
+  factory ResilienceMicroAction.fromMap(Map<String, dynamic> map) =>
+      ResilienceMicroAction(
+        title: map['title'] as String? ?? '',
+        description: map['description'] as String? ?? '',
+        timeMinutes: map['timeMinutes'] as int? ?? 5,
+      );
+}
+
+/// Support content from resilience agent
+class ResilienceSupport {
+  final String validation;
+  final String reframe;
+  final String reminder;
+  final ResilienceMicroAction microAction;
+  final String closingMessage;
+
+  ResilienceSupport({
+    required this.validation,
+    required this.reframe,
+    required this.reminder,
+    required this.microAction,
+    required this.closingMessage,
+  });
+
+  factory ResilienceSupport.fromMap(Map<String, dynamic> map) =>
+      ResilienceSupport(
+        validation: map['validation'] as String? ?? '',
+        reframe: map['reframe'] as String? ?? '',
+        reminder: map['reminder'] as String? ?? '',
+        microAction: ResilienceMicroAction.fromMap(
+          map['microAction'] as Map<String, dynamic>? ?? {},
+        ),
+        closingMessage: map['closingMessage'] as String? ?? '',
+      );
+}
+
+/// Response from resilience support
+class ResilienceSupportResponse {
+  final bool success;
+  final ResilienceSupport? support;
+  final int totalSuccesses;
+  final int streak;
+  final String? error;
+
+  ResilienceSupportResponse({
+    required this.success,
+    this.support,
+    this.totalSuccesses = 0,
+    this.streak = 0,
+    this.error,
+  });
+
+  factory ResilienceSupportResponse.fromMap(Map<String, dynamic> map) {
+    final context = map['context'] as Map<String, dynamic>?;
+    return ResilienceSupportResponse(
+      success: map['success'] as bool? ?? false,
+      support: map['support'] != null
+          ? ResilienceSupport.fromMap(map['support'] as Map<String, dynamic>)
+          : null,
+      totalSuccesses: context?['totalSuccesses'] as int? ?? 0,
+      streak: context?['streak'] as int? ?? 0,
+      error: map['error'] as String?,
+    );
+  }
+}
+
+// ============ PROACTIVE NUDGE MODELS ============
+
+/// AI-generated notification content
+class ProactiveNudge {
+  final String title;
+  final String body;
+  final String actionText;
+
+  ProactiveNudge({
+    required this.title,
+    required this.body,
+    required this.actionText,
+  });
+
+  factory ProactiveNudge.fromMap(Map<String, dynamic> map) => ProactiveNudge(
+        title: map['title'] as String? ?? 'Easy Mode',
+        body: map['body'] as String? ?? '',
+        actionText: map['actionText'] as String? ?? 'Start',
+      );
+}
+
+/// Response from proactive nudge generation
+class ProactiveNudgeResponse {
+  final bool success;
+  final ProactiveNudge? notification;
+  final String nudgeType;
+  final int daysSinceActivity;
+  final String? error;
+
+  ProactiveNudgeResponse({
+    required this.success,
+    this.notification,
+    this.nudgeType = 'daily',
+    this.daysSinceActivity = 0,
+    this.error,
+  });
+
+  factory ProactiveNudgeResponse.fromMap(Map<String, dynamic> map) {
+    final context = map['context'] as Map<String, dynamic>?;
+    return ProactiveNudgeResponse(
+      success: map['success'] as bool? ?? false,
+      notification: map['notification'] != null
+          ? ProactiveNudge.fromMap(map['notification'] as Map<String, dynamic>)
+          : null,
+      nudgeType: context?['nudgeType'] as String? ?? 'daily',
+      daysSinceActivity: context?['daysSinceActivity'] as int? ?? 0,
+      error: map['error'] as String?,
+    );
+  }
+}
+
+// ============ AI SERVICE EXTENSION ============
+
+/// Extension methods for new agentic AI features
+extension AiServiceAgenticFeatures on AiService {
+  /// Chat with the AI coach (conversational interface with memory)
+  /// 
+  /// Features:
+  /// - Retrieval-augmented generation (RAG) using past conversations
+  /// - Self-reflection loop for quality improvement
+  /// - Multi-turn conversation support
+  Future<ChatWithCoachResponse> chatWithCoach({
+    required String message,
+    List<ChatMessage> conversationHistory = const [],
+    bool enableSelfReflection = true,
+  }) async {
+    try {
+      final callable = _functions.httpsCallable(
+        'chatWithCoach',
+        options: HttpsCallableOptions(timeout: const Duration(seconds: 30)),
+      );
+
+      final result = await callable.call<Map<String, dynamic>>({
+        'message': message,
+        'conversationHistory': conversationHistory.map((m) => m.toMap()).toList(),
+        'enableSelfReflection': enableSelfReflection,
+      });
+
+      return ChatWithCoachResponse.fromMap(
+        Map<String, dynamic>.from(result.data),
+      );
+    } catch (e) {
+      return ChatWithCoachResponse(
+        success: false,
+        message: "I'm having trouble right now. Take a breath - small steps forward are still progress.",
+        error: e.toString(),
+      );
+    }
+  }
+
+  /// Trigger resilience support when user is struggling
+  /// 
+  /// Call this when:
+  /// - User reports a setback
+  /// - Streak is broken
+  /// - User hasn't been active for a while
+  Future<ResilienceSupportResponse> triggerResilienceSupport({
+    required String triggerType, // 'task_failed', 'streak_broken', 'user_reported', 'inactivity'
+    String? setbackDetails,
+  }) async {
+    try {
+      final callable = _functions.httpsCallable(
+        'triggerResilienceSupport',
+        options: HttpsCallableOptions(timeout: const Duration(seconds: 30)),
+      );
+
+      final result = await callable.call<Map<String, dynamic>>({
+        'triggerType': triggerType,
+        'setbackDetails': setbackDetails,
+      });
+
+      return ResilienceSupportResponse.fromMap(
+        Map<String, dynamic>.from(result.data),
+      );
+    } catch (e) {
+      // Return fallback support
+      return ResilienceSupportResponse(
+        success: false,
+        support: ResilienceSupport(
+          validation: "It's okay to have hard moments. This is part of the journey.",
+          reframe: "Every setback is actually data about what works for you.",
+          reminder: "You've shown up before, and that counts.",
+          microAction: ResilienceMicroAction(
+            title: 'Take 3 deep breaths',
+            description: 'This helps reset your nervous system.',
+            timeMinutes: 1,
+          ),
+          closingMessage: "You're still here. That matters.",
+        ),
+        error: e.toString(),
+      );
+    }
+  }
+
+  /// Generate a proactive AI nudge notification
+  Future<ProactiveNudgeResponse> generateProactiveNudge({
+    String nudgeType = 'daily', // 'daily', 'streak_at_risk', 'comeback', 'celebration'
+  }) async {
+    try {
+      final callable = _functions.httpsCallable('generateProactiveNudge');
+
+      final result = await callable.call<Map<String, dynamic>>({
+        'nudgeType': nudgeType,
+      });
+
+      return ProactiveNudgeResponse.fromMap(
+        Map<String, dynamic>.from(result.data),
+      );
+    } catch (e) {
+      return ProactiveNudgeResponse(
+        success: false,
+        notification: ProactiveNudge(
+          title: 'Your Easy Mode moment',
+          body: 'A small step forward is all it takes.',
+          actionText: 'Start',
+        ),
+        error: e.toString(),
+      );
+    }
+  }
+}
+
